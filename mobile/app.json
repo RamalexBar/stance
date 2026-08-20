@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Foilio",
+    "slug": "foilio",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0E12",
+    "splash": {
+      "backgroundColor": "#0A0E12"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.foilio.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Foilio necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
+        "NSMicrophoneUsageDescription": "Foilio necesita el micrófono para grabar video con audio.",
+        "NSPhotoLibraryUsageDescription": "Foilio necesita acceso a tu galería para importar videos de tus sesiones."
+      }
+    },
+    "android": {
+      "package": "com.foilio.app",
+      "permissions": ["CAMERA", "RECORD_AUDIO", "READ_MEDIA_VIDEO"]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Foilio necesita acceso a tu galería para importar videos de tus sesiones.",
+          "cameraPermission": "Foilio necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
+          "microphonePermission": "Foilio necesita el micrófono para grabar video con audio."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Foilio necesita el micrófono para grabar video con audio."
+        }
+      ]
+    ]
+  }
+}

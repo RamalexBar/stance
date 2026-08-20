@@ -1,0 +1,354 @@
+// Foilio — Fase 1
+// Firebase Authentication es la fuente de verdad para credenciales (email/password,
+// Google, Apple, Facebook, recuperación de contraseña). Esta base de datos NO guarda
+// contraseñas ni tokens de sesión: solo el perfil deportivo y los roles de negocio,
+// vinculados al usuario de Firebase mediante `firebaseUid`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  firebaseUid String   @unique
+  email       String   @unique
+  firstName   String?
+  lastName    String?
+  age         Int?
+  weightKg    Float?
+  heightCm    Float?
+  level       SkillLevel?
+  dominance   Dominance?
+  provider    AuthProvider @default(EMAIL)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles       UserRole[]
+  disciplines UserDiscipline[]
+  videos      VideoSession[]
+  injuries    InjuryLog[]
+
+  schoolGroups  Group[]        @relation("SchoolGroups")
+  trainerOf     GroupTrainer[] @relation("TrainerGroups")
+  athleteOf     GroupAthlete[] @relation("AthleteGroups")
+  subscription  Subscription?
+
+  @@index([email])
+}
+
+model Role {
+  id    String     @id @default(uuid())
+  name  RoleName   @unique
+  users UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model UserDiscipline {
+  userId     String
+  discipline Discipline
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, discipline])
+}
+
+enum RoleName {
+  ADMIN
+  TRAINER
+  ATHLETE
+  SCHOOL
+  GUEST
+}
+
+enum Discipline {
+  KITESURF
+  WINGFOIL
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  PRO
+}
+
+enum Dominance {
+  REGULAR
+  GOOFY
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  APPLE
+  FACEBOOK
+}
+
+// ── Fase 2: Carga de Videos ────────────────────────────────────────────────
+
+model VideoSession {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discipline      Discipline
+  source          VideoSource
+  storagePath     String      @unique
+  originalName    String?
+  durationSeconds Float?
+  fileSizeBytes   Int?
+  status          VideoStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  poseAnalysis    PoseAnalysis?
+  biomechanics    BiomechanicsAnalysis?
+  movement        MovementAnalysis?
+  errors          ErrorAnalysis?
+
+  // Un Entrenador/Admin puede marcar un video como referencia (ej. una demostración
+  // técnica) para que cualquier deportista de esa disciplina pueda compararse contra él.
+  isReference     Boolean     @default(false)
+  referenceLabel  String?
+
+  comparisonsAsPrimary   VideoComparison[] @relation("PrimaryVideo")
+  comparisonsAsReference VideoComparison[] @relation("ReferenceVideo")
+  coachPlan              CoachPlan?
+
+  @@index([userId, createdAt])
+}
+
+enum VideoSource {
+  RECORDED_IN_APP
+  GALLERY
+  GOPRO
+  INSTA360
+  DJI
+}
+
+enum VideoStatus {
+  PENDING
+  UPLOADED
+  FAILED
+}
+
+// ── Fase 3: Visión por Computador (detección de pose) ──────────────────────
+
+model PoseAnalysis {
+  id             String             @id @default(uuid())
+  videoId        String             @unique
+  video          VideoSession       @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  status         PoseAnalysisStatus @default(PENDING)
+  fps            Float?
+  frameCount     Int?
+  avgConfidence  Float?
+  // Serie temporal completa: un array de frames, cada uno con 33 landmarks
+  // MediaPipe Pose (x, y, z normalizados + visibility/confianza).
+  // Se guarda como JSON porque es un blob que se lee/escribe completo,
+  // no se consulta landmark por landmark desde SQL.
+  framesJson     Json?
+  engine         String             @default("mediapipe-pose-landmarker-lite")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+enum PoseAnalysisStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// ── Fase 4: Biomecánica ──────────────────────────────────────────────────
+
+model BiomechanicsAnalysis {
+  id           String                @id @default(uuid())
+  videoId      String                @unique
+  video        VideoSession          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  status       BiomechanicsStatus    @default(PENDING)
+  // Serie temporal de métricas por frame (ver biomechanics.service.ts)
+  seriesJson   Json?
+  // Resumen agregado (min/max/mean) por métrica, para tarjetas del dashboard
+  summaryJson  Json?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+}
+
+enum BiomechanicsStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// ── Fase 5: Análisis del Movimiento ─────────────────────────────────────
+
+model MovementAnalysis {
+  id          String         @id @default(uuid())
+  videoId     String         @unique
+  video       VideoSession   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  status      MovementStatus @default(PENDING)
+  segmentsJson Json?
+  notDetectedYet Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+enum MovementStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// ── Fase 6: Errores Automáticos ─────────────────────────────────────────
+
+model ErrorAnalysis {
+  id        String            @id @default(uuid())
+  videoId   String            @unique
+  video     VideoSession      @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  status    ErrorAnalysisStatus @default(PENDING)
+  findingsJson Json?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+enum ErrorAnalysisStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// ── Fase 7: Comparación ──────────────────────────────────────────────────
+
+model VideoComparison {
+  id               String        @id @default(uuid())
+  userId           String
+  mode             ComparisonMode
+  primaryVideoId   String
+  primaryVideo     VideoSession  @relation("PrimaryVideo", fields: [primaryVideoId], references: [id], onDelete: Cascade)
+  referenceVideoId String
+  referenceVideo   VideoSession  @relation("ReferenceVideo", fields: [referenceVideoId], references: [id], onDelete: Cascade)
+  primaryScore     Float
+  referenceScore   Float
+  metricsJson      Json
+  createdAt        DateTime      @default(now())
+
+  @@index([primaryVideoId, createdAt])
+}
+
+enum ComparisonMode {
+  SELF_PREVIOUS
+  TRAINER
+  PROFESSIONAL
+}
+
+// ── Fase 8: Dashboard (registro de lesiones auto-reportado) ────────────────
+
+model InjuryLog {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          DateTime
+  bodyPart      String
+  severity      InjuryLevel
+  description   String?
+  relatedVideoId String?
+  createdAt     DateTime    @default(now())
+}
+
+enum InjuryLevel {
+  LEVE
+  MODERADO
+  ALTO
+}
+
+// ── Fase 11: Escuelas ────────────────────────────────────────────────────
+
+model Group {
+  id        String         @id @default(uuid())
+  name      String
+  schoolId  String
+  school    User           @relation("SchoolGroups", fields: [schoolId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  trainers  GroupTrainer[]
+  athletes  GroupAthlete[]
+}
+
+model GroupTrainer {
+  groupId String
+  userId  String
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user    User  @relation("TrainerGroups", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+}
+
+model GroupAthlete {
+  groupId  String
+  userId   String
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User     @relation("AthleteGroups", fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@id([groupId, userId])
+}
+
+// ── Fase 12: Suscripciones ───────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 PlanType           @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+enum PlanType {
+  FREE
+  PREMIUM
+  COACH
+  ACADEMIA
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+// ── Fase 9: Entrenador IA ────────────────────────────────────────────────
+
+model CoachPlan {
+  id        String          @id @default(uuid())
+  videoId   String          @unique
+  video     VideoSession    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  status    CoachPlanStatus @default(PENDING)
+  planJson  Json?
+  userNotes String?
+  model     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+enum CoachPlanStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
