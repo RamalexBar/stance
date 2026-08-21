@@ -11,11 +11,16 @@ export interface ProfileDto {
   age: number | null;
   weightKg: number | null;
   heightCm: number | null;
+  gender: string | null;
   level: string | null;
   dominance: string | null;
   disciplines: string[];
   roles: string[];
   createdAt: Date;
+  homeSpotName: string | null;
+  homeSpotLat: number | null;
+  homeSpotLon: number | null;
+  homeSpotSeaDirectionDeg: number | null;
 }
 
 function toProfileDto(user: UserWithRelations): ProfileDto {
@@ -27,11 +32,16 @@ function toProfileDto(user: UserWithRelations): ProfileDto {
     age: user.age,
     weightKg: user.weightKg,
     heightCm: user.heightCm,
+    gender: user.gender,
     level: user.level,
     dominance: user.dominance,
     disciplines: user.disciplines.map((d) => d.discipline),
     roles: user.roles.map((r) => r.role.name),
     createdAt: user.createdAt,
+    homeSpotName: user.homeSpotName,
+    homeSpotLat: user.homeSpotLat,
+    homeSpotLon: user.homeSpotLon,
+    homeSpotSeaDirectionDeg: user.homeSpotSeaDirectionDeg,
   };
 }
 

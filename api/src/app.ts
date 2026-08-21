@@ -13,6 +13,7 @@ import { injuriesRouter } from "./modules/injuries/injuries.routes";
 import { schoolsRouter } from "./modules/schools/schools.routes";
 import { subscriptionsRouter } from "./modules/subscriptions/subscriptions.routes";
 import { subscriptionsController } from "./modules/subscriptions/subscriptions.controller";
+import { windRouter } from "./modules/wind/wind.routes";
 import { errorMiddleware, notFoundMiddleware } from "./middlewares/error.middleware";
 
 export function createApp() {
@@ -50,6 +51,7 @@ export function createApp() {
   app.use("/api/v1/injuries", injuriesRouter);
   app.use("/api/v1/groups", schoolsRouter);
   app.use("/api/v1/subscriptions", subscriptionsRouter);
+  app.use("/api/v1/wind", windRouter);
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);

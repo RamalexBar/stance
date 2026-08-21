@@ -22,12 +22,23 @@ model User {
   age         Int?
   weightKg    Float?
   heightCm    Float?
+  gender      Gender?
   level       SkillLevel?
   dominance   Dominance?
   provider    AuthProvider @default(EMAIL)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Spot habitual: de acá se saca el viento (Open-Meteo, por lat/lon) y se
+  // clasifica costera-adentro/costera-afuera comparando la dirección del
+  // viento contra homeSpotSeaDirectionDeg (rumbo playa -> mar en grados,
+  // 0-360). Sin este último dato no se puede saber si el viento sopla hacia
+  // la playa o hacia el mar solo con lat/lon.
+  homeSpotName            String?
+  homeSpotLat             Float?
+  homeSpotLon             Float?
+  homeSpotSeaDirectionDeg Float?
 
   roles       UserRole[]
   disciplines UserDiscipline[]
@@ -88,6 +99,13 @@ enum SkillLevel {
 enum Dominance {
   REGULAR
   GOOFY
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
 }
 
 enum AuthProvider {

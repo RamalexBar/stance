@@ -12,9 +12,10 @@ interface Props {
   series: Series[];
   lines: { key: string; label: string; color: string }[];
   yLabel: string;
+  xLabel?: string;
 }
 
-export default function MetricChart({ title, series, lines, yLabel }: Props) {
+export default function MetricChart({ title, series, lines, yLabel, xLabel = "segundos" }: Props) {
   return (
     <div style={{ marginBottom: 32 }}>
       <h3 style={{ color: "var(--color-white)", fontSize: "1rem", marginBottom: 4 }}>
@@ -22,7 +23,7 @@ export default function MetricChart({ title, series, lines, yLabel }: Props) {
       </h3>
       <VictoryChart theme={VictoryTheme.clean} height={220} padding={{ top: 10, bottom: 40, left: 50, right: 20 }}>
         <VictoryAxis
-          label="segundos"
+          label={xLabel}
           style={{
             axisLabel: { fill: "#7C8A96", padding: 28 },
             tickLabels: { fill: "#7C8A96", fontSize: 10 },

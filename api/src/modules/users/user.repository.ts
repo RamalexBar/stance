@@ -54,9 +54,14 @@ export const userRepository = {
       age?: number;
       weightKg?: number;
       heightCm?: number;
+      gender?: Prisma.UserUpdateInput["gender"];
       level?: Prisma.UserUpdateInput["level"];
       dominance?: Prisma.UserUpdateInput["dominance"];
       disciplines?: Discipline[];
+      homeSpotName?: string;
+      homeSpotLat?: number;
+      homeSpotLon?: number;
+      homeSpotSeaDirectionDeg?: number;
     }
   ): Promise<UserWithRelations> {
     const { disciplines, ...profileFields } = data;
