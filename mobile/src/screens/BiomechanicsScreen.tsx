@@ -96,8 +96,10 @@ export default function BiomechanicsScreen({ route, navigation }: RootStackScree
       </View>
 
       <Text style={styles.helper}>
-        Para ver la evolución en el tiempo con gráficos, usa la versión web —
-        esta pantalla muestra el resumen para consulta rápida en el teléfono.
+        Para ver la evolución en el tiempo con gráficos, y la repetición con
+        el avatar coloreado (verde = bien, ámbar/naranja/rojo = error leve,
+        moderado o alto), usa la versión web — esta pantalla muestra el
+        resumen para consulta rápida en el teléfono.
       </Text>
     </ScrollView>
   );

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRequireAuth } from "../../../../hooks/useRequireAuth";
 import { apiGet, apiPost } from "../../../../lib/api";
 import MetricChart from "../../../../components/MetricChart";
+import SkeletonReplay from "../../../../components/SkeletonReplay";
 
 interface MetricSummary {
   min: number;
@@ -24,6 +25,15 @@ interface BiomechanicsRecord {
   };
 }
 
+interface VideoDetail {
+  id: string;
+  playbackUrl: string;
+}
+
+interface PoseAnalysisRecord {
+  framesJson: { tSeconds: number; landmarks: { x: number; y: number; z?: number; visibility?: number }[] }[];
+}
+
 function fmt(n: number | undefined | null, decimals = 1) {
   if (n === undefined || n === null || Number.isNaN(n)) return "—";
   return n.toFixed(decimals);
@@ -33,6 +43,8 @@ export default function BiomechanicsPage() {
   const { id } = useParams<{ id: string }>();
   const { ready } = useRequireAuth();
   const [data, setData] = useState<BiomechanicsRecord | null>(null);
+  const [video, setVideo] = useState<VideoDetail | null>(null);
+  const [poseFrames, setPoseFrames] = useState<PoseAnalysisRecord["framesJson"]>([]);
   const [state, setState] = useState<"loading" | "computing" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -49,6 +61,13 @@ export default function BiomechanicsPage() {
       const result = await apiGet<BiomechanicsRecord>(`/api/v1/videos/${id}/biomechanics`);
       setData(result);
       setState("ready");
+
+      // El video + los landmarks crudos solo alimentan el overlay coloreado
+      // del esqueleto; si fallan, el resto de la página sigue funcionando.
+      apiGet<VideoDetail>(`/api/v1/videos/${id}`).then(setVideo).catch(console.error);
+      apiGet<PoseAnalysisRecord>(`/api/v1/videos/${id}/pose-analysis`)
+        .then((r) => setPoseFrames(r.framesJson ?? []))
+        .catch(console.error);
     } catch (err: any) {
       setState("error");
       setErrorMsg(
@@ -82,6 +101,15 @@ export default function BiomechanicsPage() {
 
       {state === "ready" && summary && (
         <>
+          {video && poseFrames.length > 0 && (
+            <div style={{ margin: "20px 0" }}>
+              <h3 style={{ color: "var(--color-white)", fontSize: "1rem", marginBottom: 8 }}>
+                Repetición con avatar
+              </h3>
+              <SkeletonReplay videoUrl={video.playbackUrl} poseFrames={poseFrames} metricsFrames={series} />
+            </div>
+          )}
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, margin: "20px 0" }}>
             <SummaryCard label="Rodilla (izq/der, promedio)" value={`${fmt(summary.kneeAngleLeft?.mean)}° / ${fmt(summary.kneeAngleRight?.mean)}°`} />
             <SummaryCard label="Cadera (izq/der, promedio)" value={`${fmt(summary.hipAngleLeft?.mean)}° / ${fmt(summary.hipAngleRight?.mean)}°`} />
