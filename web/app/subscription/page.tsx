@@ -64,7 +64,7 @@ export default function SubscriptionPage() {
         <Link href="/profile">← Volver al perfil</Link>
       </p>
       <h1 style={{ color: "var(--color-turquoise)", marginBottom: 4 }}>Planes</h1>
-      <p className="subtitle">Elige el plan según cómo usas Foilio</p>
+      <p className="subtitle">Elige el plan según cómo usas Stance</p>
 
       {status === "success" && <p className="success-text">¡Suscripción exitosa! Puede tardar unos segundos en reflejarse.</p>}
       {status === "canceled" && <p style={{ color: "var(--color-muted)" }}>Pago cancelado.</p>}

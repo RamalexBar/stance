@@ -1,4 +1,4 @@
-# Foilio — Fase 2: Carga de Videos
+# Stance — Fase 2: Carga de Videos
 
 ## 1. Objetivo y criterios de aceptación
 

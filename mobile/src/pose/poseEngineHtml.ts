@@ -83,7 +83,7 @@ export const POSE_ENGINE_HTML = `
     }
 
     async function main() {
-      const videoUrl = window.__FOILIO_VIDEO_URL__;
+      const videoUrl = window.__STANCE_VIDEO_URL__;
       if (!videoUrl) {
         statusEl.textContent = "No se recibió URL de video.";
         post("error", "missing-video-url");

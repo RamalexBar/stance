@@ -1,4 +1,4 @@
-# Foilio
+# Stance
 
 App de coaching para deportistas de kitesurf y wing foil: sube un video de tu
 sesión, se analiza pose/biomecánica/movimiento, se detectan errores técnicos,
@@ -9,7 +9,7 @@ PDF/Excel, gestión de escuelas/grupos, y planes de suscripción vía Stripe.
 Tres proyectos en este repo:
 
 ```
-foilio/
+stance/
 ├── api/      # Express + TypeScript + Prisma/PostgreSQL
 ├── web/      # Next.js (App Router)
 └── mobile/   # Expo / React Native
@@ -60,7 +60,7 @@ PostgreSQL/Prisma sin tocar los controllers.
 ## 2. Estructura de carpetas
 
 ```
-foilio/
+stance/
 ├── api/
 │   ├── prisma/
 │   │   ├── schema.prisma      # User, Video, Biomechanics, Subscription, etc.

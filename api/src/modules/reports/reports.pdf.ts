@@ -12,7 +12,7 @@ function fmt(n: number | null | undefined, decimals = 1) {
 export function buildReportPdf(data: ReportData): PDFKit.PDFDocument {
   const doc = new PDFDocument({ margin: 50, size: "A4" });
 
-  doc.fontSize(20).fillColor(TURQUOISE).text("Foilio — Reporte de sesión", { align: "left" });
+  doc.fontSize(20).fillColor(TURQUOISE).text("Stance — Reporte de sesión", { align: "left" });
   doc.moveDown(0.3);
   doc.fontSize(10).fillColor(MUTED).text(
     `${data.video.discipline} · ${new Date(data.video.createdAt).toLocaleDateString()} · ${data.video.originalName ?? "Video"}`

@@ -45,9 +45,9 @@ export const reportsService = {
 
     await sendReportEmail({
       toEmail,
-      subject: `Foilio — Reporte de tu sesión de ${data.video.discipline}`,
-      text: "Adjunto encontrarás el reporte de tu última sesión analizada en Foilio.",
-      attachmentFilename: isPdf ? "reporte-foilio.pdf" : "reporte-foilio.xlsx",
+      subject: `Stance — Reporte de tu sesión de ${data.video.discipline}`,
+      text: "Adjunto encontrarás el reporte de tu última sesión analizada en Stance.",
+      attachmentFilename: isPdf ? "reporte-stance.pdf" : "reporte-stance.xlsx",
       attachmentBuffer: buffer,
       attachmentContentType: isPdf
         ? "application/pdf"

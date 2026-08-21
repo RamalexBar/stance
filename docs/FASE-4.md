@@ -1,4 +1,4 @@
-# Foilio — Fase 4: Biomecánica
+# Stance — Fase 4: Biomecánica
 
 ## 1. Objetivo y criterios de aceptación
 

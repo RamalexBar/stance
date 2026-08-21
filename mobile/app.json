@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Foilio",
-    "slug": "foilio",
+    "name": "Stance",
+    "slug": "stance",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -11,30 +11,30 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.foilio.app",
+      "bundleIdentifier": "com.stance.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Foilio necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
-        "NSMicrophoneUsageDescription": "Foilio necesita el micrófono para grabar video con audio.",
-        "NSPhotoLibraryUsageDescription": "Foilio necesita acceso a tu galería para importar videos de tus sesiones."
+        "NSCameraUsageDescription": "Stance necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
+        "NSMicrophoneUsageDescription": "Stance necesita el micrófono para grabar video con audio.",
+        "NSPhotoLibraryUsageDescription": "Stance necesita acceso a tu galería para importar videos de tus sesiones."
       }
     },
     "android": {
-      "package": "com.foilio.app",
+      "package": "com.stance.app",
       "permissions": ["CAMERA", "RECORD_AUDIO", "READ_MEDIA_VIDEO"]
     },
     "plugins": [
       [
         "expo-image-picker",
         {
-          "photosPermission": "Foilio necesita acceso a tu galería para importar videos de tus sesiones.",
-          "cameraPermission": "Foilio necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
-          "microphonePermission": "Foilio necesita el micrófono para grabar video con audio."
+          "photosPermission": "Stance necesita acceso a tu galería para importar videos de tus sesiones.",
+          "cameraPermission": "Stance necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
+          "microphonePermission": "Stance necesita el micrófono para grabar video con audio."
         }
       ],
       [
         "expo-av",
         {
-          "microphonePermission": "Foilio necesita el micrófono para grabar video con audio."
+          "microphonePermission": "Stance necesita el micrófono para grabar video con audio."
         }
       ]
     ]

@@ -3,7 +3,7 @@ import { ReportData } from "./reports.data";
 
 export async function buildReportExcel(data: ReportData): Promise<ExcelJS.Buffer> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Foilio";
+  workbook.creator = "Stance";
   workbook.created = new Date();
 
   // Hoja 1: Resumen

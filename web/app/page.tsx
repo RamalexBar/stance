@@ -15,7 +15,7 @@ export default function HomePage() {
 
   return (
     <div className="auth-shell">
-      <p style={{ color: "var(--color-muted)" }}>Cargando Foilio…</p>
+      <p style={{ color: "var(--color-muted)" }}>Cargando Stance…</p>
     </div>
   );
 }

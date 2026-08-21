@@ -1,4 +1,4 @@
-// Foilio — Fase 1
+// Stance — Fase 1
 // Firebase Authentication es la fuente de verdad para credenciales (email/password,
 // Google, Apple, Facebook, recuperación de contraseña). Esta base de datos NO guarda
 // contraseñas ni tokens de sesión: solo el perfil deportivo y los roles de negocio,

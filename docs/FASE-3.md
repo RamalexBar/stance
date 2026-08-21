@@ -1,4 +1,4 @@
-# Foilio — Fase 3: Visión por Computador (Detección de Pose)
+# Stance — Fase 3: Visión por Computador (Detección de Pose)
 
 ## 1. Objetivo y criterios de aceptación
 

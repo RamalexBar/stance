@@ -19,7 +19,7 @@ export default function ReportPage() {
     try {
       await apiDownload(
         `/api/v1/videos/${id}/report/${format}`,
-        format === "pdf" ? "reporte-foilio.pdf" : "reporte-foilio.xlsx"
+        format === "pdf" ? "reporte-stance.pdf" : "reporte-stance.xlsx"
       );
     } catch (err) {
       setMessage("No se pudo generar el reporte. Verifica que el video tenga biomecánica calculada.");
@@ -34,13 +34,13 @@ export default function ReportPage() {
     try {
       const blob = await apiDownload(
         `/api/v1/videos/${id}/report/${format}`,
-        format === "pdf" ? "reporte-foilio.pdf" : "reporte-foilio.xlsx"
+        format === "pdf" ? "reporte-stance.pdf" : "reporte-stance.xlsx"
       );
-      const file = new File([blob], format === "pdf" ? "reporte-foilio.pdf" : "reporte-foilio.xlsx", {
+      const file = new File([blob], format === "pdf" ? "reporte-stance.pdf" : "reporte-stance.xlsx", {
         type: blob.type,
       });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Reporte Foilio" });
+        await navigator.share({ files: [file], title: "Reporte Stance" });
       } else {
         setMessage("Tu navegador no soporta compartir directamente; el archivo ya se descargó.");
       }

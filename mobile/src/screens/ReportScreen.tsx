@@ -15,7 +15,7 @@ export default function ReportScreen({ route }: RootStackScreenProps<"Report">) 
     setBusy(format);
     setMessage(null);
     try {
-      const filename = format === "pdf" ? "reporte-foilio.pdf" : "reporte-foilio.xlsx";
+      const filename = format === "pdf" ? "reporte-stance.pdf" : "reporte-stance.xlsx";
       const uri = await apiDownloadFile(`/api/v1/videos/${videoId}/report/${format}`, filename);
 
       const canShare = await Sharing.isAvailableAsync();

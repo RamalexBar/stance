@@ -92,7 +92,7 @@ export default function PoseAnalysisScreen({ route }: RootStackScreenProps<"Pose
     );
   }
 
-  const injected = `window.__FOILIO_VIDEO_URL__ = ${JSON.stringify(video.playbackUrl)};`;
+  const injected = `window.__STANCE_VIDEO_URL__ = ${JSON.stringify(video.playbackUrl)};`;
 
   return (
     <View style={styles.container}>

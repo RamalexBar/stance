@@ -39,7 +39,7 @@ export function createApp() {
   app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));
 
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", service: "foilio-api" });
+    res.json({ status: "ok", service: "stance-api" });
   });
 
   app.use("/api/v1/users", userRouter);

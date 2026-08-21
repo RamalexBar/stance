@@ -1,16 +1,16 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: foilio-postgres
+    container_name: stance-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: foilio
-      POSTGRES_PASSWORD: foilio
-      POSTGRES_DB: foilio
+      POSTGRES_USER: stance
+      POSTGRES_PASSWORD: stance
+      POSTGRES_DB: stance
     ports:
       - "5432:5432"
     volumes:
-      - foilio_postgres_data:/var/lib/postgresql/data
+      - stance_postgres_data:/var/lib/postgresql/data
 
 volumes:
-  foilio_postgres_data:
+  stance_postgres_data:

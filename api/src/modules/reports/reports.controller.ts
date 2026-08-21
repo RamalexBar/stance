@@ -16,7 +16,7 @@ export const reportsController = {
       const userId = await resolveUserId(req);
       const buffer = await reportsService.getPdfBuffer(userId, req.params.id);
       res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="reporte-foilio.pdf"`);
+      res.setHeader("Content-Disposition", `attachment; filename="reporte-stance.pdf"`);
       res.send(buffer);
     } catch (err) {
       next(err);
@@ -31,7 +31,7 @@ export const reportsController = {
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
-      res.setHeader("Content-Disposition", `attachment; filename="reporte-foilio.xlsx"`);
+      res.setHeader("Content-Disposition", `attachment; filename="reporte-stance.xlsx"`);
       res.send(buffer);
     } catch (err) {
       next(err);
