@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
 } from "firebase/auth";
 import { firebaseAuthClient } from "../../lib/firebase";
+import PasswordField from "../../components/PasswordField";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -58,16 +59,14 @@ export default function LoginPage() {
               required
             />
           </div>
-          <div className="field">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <PasswordField
+            id="password"
+            label="Contraseña"
+            value={password}
+            onChange={setPassword}
+            required
+            autoComplete="current-password"
+          />
 
           {error && <p className="error-text">{error}</p>}
 

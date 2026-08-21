@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { firebaseAuthClient } from "../../lib/firebase";
+import PasswordField from "../../components/PasswordField";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -61,26 +62,22 @@ export default function RegisterPage() {
               required
             />
           </div>
-          <div className="field">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="confirmPassword">Confirmar contraseña</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
+          <PasswordField
+            id="password"
+            label="Contraseña"
+            value={password}
+            onChange={setPassword}
+            required
+            autoComplete="new-password"
+          />
+          <PasswordField
+            id="confirmPassword"
+            label="Confirmar contraseña"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            required
+            autoComplete="new-password"
+          />
 
           {error && <p className="error-text">{error}</p>}
 
