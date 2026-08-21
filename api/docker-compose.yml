@@ -1,16 +1,16 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: rideiq-postgres
+    container_name: foilio-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: rideiq
-      POSTGRES_PASSWORD: rideiq
-      POSTGRES_DB: rideiq
+      POSTGRES_USER: foilio
+      POSTGRES_PASSWORD: foilio
+      POSTGRES_DB: foilio
     ports:
       - "5432:5432"
     volumes:
-      - rideiq_postgres_data:/var/lib/postgresql/data
+      - foilio_postgres_data:/var/lib/postgresql/data
 
 volumes:
-  rideiq_postgres_data:
+  foilio_postgres_data:
