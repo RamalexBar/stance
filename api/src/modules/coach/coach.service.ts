@@ -76,7 +76,7 @@ export const coachService = {
         await subscriptionsService.assertCanGenerateCoachPlan(userId, tx);
         await coachRepository.reservePending(videoId, tx);
       },
-      { isolationLevel: "Serializable" }
+      { isolationLevel: "Serializable", timeout: 15000 }
     );
 
     const { system, user: userPrompt } = buildCoachPrompt(context);

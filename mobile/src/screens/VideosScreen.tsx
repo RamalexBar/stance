@@ -9,6 +9,7 @@ import {
   Modal,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { Video, ResizeMode } from "expo-av";
 import { apiGet, apiPatch, apiPost } from "../api/client";
 import { isSupabaseConfigured, uploadVideoToSignedUrl } from "../supabase/supabaseClient";
@@ -25,6 +26,49 @@ interface VideoItem {
   status: string;
   originalName: string | null;
   durationSeconds: number | null;
+}
+
+interface RawGpsPoint {
+  timestamp: number;
+  lat: number;
+  lon: number;
+  accuracyMeters?: number;
+}
+
+/**
+ * El timestamp t=0 del track NO es "cuándo se abrió la cámara" sino
+ * "cuándo empezó realmente la grabación", calculado hacia atrás desde el
+ * momento en que la cámara nativa devolvió el video (dato preciso) menos
+ * su duración (dato preciso) — evita el error que metería asumir que la
+ * grabación arrancó apenas se invocó la cámara (hay demora mientras el
+ * usuario encuadra antes de presionar grabar).
+ */
+function buildGpsTrackPoints(points: RawGpsPoint[], recordingEndedAt: number, durationMs: number) {
+  const recordingStartedAt = recordingEndedAt - durationMs;
+  return points
+    .map((p) => ({
+      tSeconds: (p.timestamp - recordingStartedAt) / 1000,
+      lat: p.lat,
+      lon: p.lon,
+      accuracyMeters: p.accuracyMeters,
+    }))
+    .filter((p) => p.tSeconds >= 0 && p.tSeconds <= durationMs / 1000);
+}
+
+async function submitGpsTrack(
+  videoId: string,
+  rawPoints: RawGpsPoint[],
+  recordingEndedAt: number,
+  durationMs: number
+) {
+  const points = buildGpsTrackPoints(rawPoints, recordingEndedAt, durationMs);
+  if (points.length < 2) return; // el backend exige al menos 2 puntos
+  try {
+    await apiPost(`/api/v1/videos/${videoId}/gps-track`, { points });
+  } catch (err) {
+    // No crítico: el video ya se subió bien. Solo se pierde velocidad/distancia.
+    console.error("No se pudo subir el track GPS:", err);
+  }
 }
 
 export default function VideosScreen({ navigation }: RootStackScreenProps<"Videos">) {
@@ -47,7 +91,10 @@ export default function VideosScreen({ navigation }: RootStackScreenProps<"Video
     }
   }
 
-  async function uploadAsset(asset: ImagePicker.ImagePickerAsset, source: string) {
+  async function uploadAsset(
+    asset: ImagePicker.ImagePickerAsset,
+    source: string
+  ): Promise<string | null> {
     setUploading(true);
     setStatusMsg("Preparando subida…");
     try {
@@ -85,9 +132,11 @@ export default function VideosScreen({ navigation }: RootStackScreenProps<"Video
 
       setStatusMsg("¡Video subido!");
       await refreshVideos();
+      return ticket.videoId;
     } catch (err) {
       console.error(err);
       setStatusMsg("Ocurrió un error subiendo el video.");
+      return null;
     } finally {
       setUploading(false);
       setTimeout(() => setStatusMsg(null), 3000);
@@ -115,13 +164,43 @@ export default function VideosScreen({ navigation }: RootStackScreenProps<"Video
       setStatusMsg("Necesitamos permiso para usar la cámara.");
       return;
     }
+
+    // El GPS es opcional: si no se concede el permiso, se graba igual y
+    // simplemente el video no tendrá velocidad/distancia en el dashboard.
+    // La cámara nativa (launchCameraAsync) corre en el mismo proceso JS que
+    // esta pantalla, así que watchPositionAsync sigue capturando mientras
+    // está abierta — no hace falta una pantalla de cámara propia.
+    const gpsPoints: RawGpsPoint[] = [];
+    let gpsSubscription: Location.LocationSubscription | null = null;
+    const locationPermission = await Location.requestForegroundPermissionsAsync();
+    if (locationPermission.granted) {
+      gpsSubscription = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
+        (loc) => {
+          gpsPoints.push({
+            timestamp: loc.timestamp,
+            lat: loc.coords.latitude,
+            lon: loc.coords.longitude,
+            accuracyMeters: loc.coords.accuracy ?? undefined,
+          });
+        }
+      );
+    }
+
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       videoMaxDuration: 60,
       quality: 1,
     });
+    const recordingEndedAt = Date.now();
+    gpsSubscription?.remove();
+
     if (!result.canceled && result.assets[0]) {
-      uploadAsset(result.assets[0], "RECORDED_IN_APP");
+      const asset = result.assets[0];
+      const videoId = await uploadAsset(asset, "RECORDED_IN_APP");
+      if (videoId && asset.duration && gpsPoints.length >= 2) {
+        await submitGpsTrack(videoId, gpsPoints, recordingEndedAt, asset.duration);
+      }
     }
   }
 

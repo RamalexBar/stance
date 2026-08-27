@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: stance
       POSTGRES_DB: stance
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - stance_postgres_data:/var/lib/postgresql/data
 

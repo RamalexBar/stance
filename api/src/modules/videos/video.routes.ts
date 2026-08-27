@@ -15,6 +15,8 @@ import { validateBody } from "../../middlewares/validate.middleware";
 import { coachPlanRateLimiter, videoUploadRateLimiter } from "../../middlewares/rateLimit.middleware";
 import { createVideoSchema, completeVideoSchema } from "./video.dto";
 import { submitPoseAnalysisSchema } from "../pose/pose.dto";
+import { gpsController } from "../gps/gps.controller";
+import { submitGpsTrackSchema } from "../gps/gps.dto";
 
 export const videoRouter = Router();
 
@@ -116,3 +118,16 @@ videoRouter.post(
   validateBody(emailReportSchema),
   reportsController.email
 );
+
+// ── Fase 13: velocidad y distancia (GPS) ────────────────────────────────────
+
+// POST /api/v1/videos/:id/gps-track — guarda el track GPS capturado por el
+// cliente (mobile) mientras se grababa el video.
+videoRouter.post(
+  "/:id/gps-track",
+  validateBody(submitGpsTrackSchema),
+  gpsController.submit
+);
+
+// GET /api/v1/videos/:id/gps-track — recupera el track guardado
+videoRouter.get("/:id/gps-track", gpsController.get);

@@ -88,6 +88,14 @@ a {
   border-color: var(--color-turquoise);
 }
 
+/* El navegador renderiza la lista desplegable de <select> con su propio
+   fondo (normalmente blanco), fuera del alcance de "background" en el
+   select. Sin esto, --color-white heredado queda ilegible sobre ese fondo. */
+.field select option {
+  background: var(--color-black-soft);
+  color: var(--color-white);
+}
+
 .btn-primary {
   width: 100%;
   padding: 12px 14px;

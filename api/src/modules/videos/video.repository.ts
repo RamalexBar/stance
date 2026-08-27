@@ -36,6 +36,12 @@ export const videoRepository = {
       orderBy: { createdAt: "desc" },
       take: limit,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      include: {
+        poseAnalysis: { select: { id: true } },
+        biomechanics: { select: { id: true } },
+        movement: { select: { id: true } },
+        errors: { select: { id: true } },
+      },
     });
   },
 

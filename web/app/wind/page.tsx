@@ -24,6 +24,7 @@ interface TodayWind {
     windGustsKmh: number;
     windDirectionFromDeg: number;
     shore: ShoreResult;
+    levelCaution: string | null;
   };
   hourly: { time: string; windSpeedKmh: number; windDirectionFromDeg: number; shore: ShoreClassification }[];
   recommendation: {
@@ -167,6 +168,11 @@ export default function WindPage() {
               </span>
             </div>
             <p style={{ color: "var(--color-muted)", fontSize: 13 }}>{data.current.shore.safetyNote}</p>
+            {data.current.levelCaution && (
+              <p style={{ color: "#FFB020", fontSize: 13, marginTop: 8, fontWeight: 600 }}>
+                ⚠️ {data.current.levelCaution}
+              </p>
+            )}
           </div>
 
           {hourlySeries && hourlySeries.length > 0 && (

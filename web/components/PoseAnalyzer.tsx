@@ -31,6 +31,7 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<CapturedFrame[]>([]);
+  const attemptedFramesRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const [state, setState] = useState<AnalysisState>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -93,6 +94,7 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
     setState("running");
     setMessage("Cargando modelo de pose…");
     framesRef.current = [];
+    attemptedFramesRef.current = 0;
 
     const landmarker = await getPoseLandmarker();
 
@@ -108,6 +110,7 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
 
       const result = landmarker.detectForVideo(video, performance.now());
       const landmarks = result.landmarks?.[0];
+      attemptedFramesRef.current += 1;
 
       if (landmarks && landmarks.length === 33) {
         drawFrame(landmarks);
@@ -146,6 +149,9 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
     const avgConfidence =
       allConfidences.reduce((a, b) => a + b, 0) / allConfidences.length;
 
+    const attempted = attemptedFramesRef.current || frames.length;
+    const captureRate = frames.length / attempted;
+
     try {
       await apiPost(`/api/v1/videos/${videoId}/pose-analysis`, {
         fps,
@@ -154,10 +160,18 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
         engine: "mediapipe-pose-landmarker-lite",
       });
       setState("done");
+      const base = `Análisis guardado: ${frames.length} cuadros, confianza promedio ${(
+        avgConfidence * 100
+      ).toFixed(0)}%.`;
+      // Los saltos son justo donde el cuerpo suele salir parcialmente de
+      // cuadro y MediaPipe pierde la detección — avisamos en vez de dejar
+      // que el usuario piense que el análisis cubrió todo el video.
       setMessage(
-        `Análisis guardado: ${frames.length} cuadros, confianza promedio ${(
-          avgConfidence * 100
-        ).toFixed(0)}%.`
+        captureRate < 0.7
+          ? `${base} Solo se detectó la pose en ${(captureRate * 100).toFixed(
+              0
+            )}% del video — es normal en momentos de mucho movimiento (saltos), pero si el número es muy bajo revisa que el deportista esté siempre en cuadro.`
+          : base
       );
     } catch (err) {
       console.error(err);

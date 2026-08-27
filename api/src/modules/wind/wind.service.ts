@@ -1,7 +1,7 @@
 import { Discipline } from "@prisma/client";
 import { userRepository } from "../users/user.repository";
 import { fetchWindForecast, searchSpots, SpotSearchResult } from "./wind.client";
-import { classifyShoreWind, recommendEquipment, EquipmentRecommendation, ShoreClassificationResult } from "./wind.compute";
+import { classifyShoreWind, recommendEquipment, levelCaution, EquipmentRecommendation, ShoreClassificationResult } from "./wind.compute";
 import { AppError, NotFoundError } from "../../shared/errors";
 
 export interface TodayWindResult {
@@ -12,6 +12,7 @@ export interface TodayWindResult {
     windGustsKmh: number;
     windDirectionFromDeg: number;
     shore: ShoreClassificationResult;
+    levelCaution: string | null;
   };
   hourly: {
     time: string;
@@ -61,6 +62,12 @@ export const windService = {
         windGustsKmh: forecast.current.windGustsKmh,
         windDirectionFromDeg: forecast.current.windDirectionFromDeg,
         shore: currentShore,
+        levelCaution: levelCaution(
+          user.level,
+          forecast.current.windSpeedKmh,
+          forecast.current.windGustsKmh,
+          currentShore.safetyLevel
+        ),
       },
       hourly: forecast.hourly.map((h) => ({
         time: h.time,

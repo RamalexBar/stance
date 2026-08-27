@@ -18,6 +18,10 @@ interface VideoItem {
   originalName: string | null;
   durationSeconds: number | null;
   createdAt: string;
+  hasPoseAnalysis?: boolean;
+  hasBiomechanics?: boolean;
+  hasMovement?: boolean;
+  hasErrors?: boolean;
 }
 
 interface UploadTicket {
@@ -26,6 +30,52 @@ interface UploadTicket {
   signedUrl: string;
   token: string;
   bucket: string;
+}
+
+function StepLink({
+  href,
+  label,
+  enabled,
+  disabledReason,
+  color,
+  bold,
+}: {
+  href: string;
+  label: string;
+  enabled: boolean;
+  disabledReason?: string;
+  color?: string;
+  bold?: boolean;
+}) {
+  const baseStyle: React.CSSProperties = {
+    width: "auto",
+    padding: "8px 14px",
+    display: "inline-flex",
+    alignItems: "center",
+    fontWeight: bold ? 600 : undefined,
+  };
+
+  if (!enabled) {
+    return (
+      <span
+        className="btn-secondary"
+        title={disabledReason ?? "Todavía no disponible para este video."}
+        style={{ ...baseStyle, opacity: 0.4, cursor: "not-allowed" }}
+      >
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="btn-secondary"
+      style={{ ...baseStyle, color, borderColor: color }}
+    >
+      {label}
+    </Link>
+  );
 }
 
 export default function VideosPage() {
@@ -181,7 +231,7 @@ export default function VideosPage() {
               </div>
             </div>
             {v.status === "UPLOADED" && (
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button
                   className="btn-secondary"
                   style={{ width: "auto", padding: "8px 14px", margin: 0 }}
@@ -189,99 +239,52 @@ export default function VideosPage() {
                 >
                   Reproducir
                 </button>
-                <Link
+                <StepLink
                   href={`/videos/${v.id}/analyze`}
-                  className="btn-secondary"
-                  style={{
-                    width: "auto",
-                    padding: "8px 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    color: "var(--color-turquoise)",
-                    borderColor: "var(--color-turquoise)",
-                  }}
-                >
-                  Analizar
-                </Link>
-                <Link
+                  label="Analizar"
+                  enabled
+                  color="var(--color-turquoise)"
+                />
+                <StepLink
                   href={`/videos/${v.id}/biomechanics`}
-                  className="btn-secondary"
-                  style={{
-                    width: "auto",
-                    padding: "8px 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    color: "var(--color-blue)",
-                    borderColor: "var(--color-blue)",
-                  }}
-                >
-                  Biomecánica
-                </Link>
-                <Link
+                  label="Biomecánica"
+                  enabled={!!v.hasPoseAnalysis}
+                  disabledReason="Primero corre 'Analizar' en este video."
+                  color="var(--color-blue)"
+                />
+                <StepLink
                   href={`/videos/${v.id}/movement`}
-                  className="btn-secondary"
-                  style={{
-                    width: "auto",
-                    padding: "8px 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                  }}
-                >
-                  Movimiento
-                </Link>
-                <Link
+                  label="Movimiento"
+                  enabled={!!v.hasPoseAnalysis}
+                  disabledReason="Primero corre 'Analizar' en este video."
+                />
+                <StepLink
                   href={`/videos/${v.id}/errors`}
-                  className="btn-secondary"
-                  style={{
-                    width: "auto",
-                    padding: "8px 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    color: "#FF8A3D",
-                    borderColor: "#FF8A3D",
-                  }}
-                >
-                  Errores
-                </Link>
-                <Link
+                  label="Errores"
+                  enabled={!!v.hasBiomechanics && !!v.hasMovement}
+                  disabledReason="Primero corre 'Biomecánica' y 'Movimiento' en este video."
+                  color="#FF8A3D"
+                />
+                <StepLink
                   href={`/videos/${v.id}/compare`}
-                  className="btn-secondary"
-                  style={{
-                    width: "auto",
-                    padding: "8px 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                  }}
-                >
-                  Comparar
-                </Link>
-                <Link
+                  label="Comparar"
+                  enabled={!!v.hasPoseAnalysis}
+                  disabledReason="Primero corre 'Analizar' en este video."
+                />
+                <StepLink
                   href={`/videos/${v.id}/coach`}
-                  className="btn-secondary"
-                  style={{
-                    width: "auto",
-                    padding: "8px 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    color: "var(--color-turquoise)",
-                    borderColor: "var(--color-turquoise)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Entrenador IA
-                </Link>
-                <Link
+                  label="Entrenador IA"
+                  enabled={!!v.hasBiomechanics && !!v.hasMovement && !!v.hasErrors}
+                  disabledReason="Primero corre 'Biomecánica', 'Movimiento' y 'Errores' en este video."
+                  color="var(--color-turquoise)"
+                  bold
+                />
+                <StepLink
                   href={`/videos/${v.id}/report`}
-                  className="btn-secondary"
-                  style={{
-                    width: "auto",
-                    padding: "8px 14px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                  }}
-                >
-                  Reporte
-                </Link>
+                  label="Reporte"
+                  enabled={!!v.hasPoseAnalysis}
+                  disabledReason="Primero corre 'Analizar' en este video."
+                />
               </div>
             )}
           </li>

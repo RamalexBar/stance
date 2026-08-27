@@ -27,6 +27,8 @@ const LEVEL_COLOR: Record<string, string> = {
   ALTO: "#FF6B6B",
 };
 
+const LEVEL_ORDER: Record<string, number> = { ALTO: 0, MODERADO: 1, LEVE: 2 };
+
 export default function ErrorsPage() {
   const { id } = useParams<{ id: string }>();
   const { ready } = useRequireAuth();
@@ -47,7 +49,12 @@ export default function ErrorsPage() {
         `/api/v1/videos/${id}/errors`,
         {}
       );
-      setFindings(result.findings);
+      // De más urgente a menos: el deportista debe saber qué corregir
+      // PRIMERO, no leer una lista plana y adivinar cuál importa más.
+      const sorted = [...result.findings].sort(
+        (a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]
+      );
+      setFindings(sorted);
       setNotDetected(result.notDetectedYet);
       setState("ready");
     } catch {
@@ -80,6 +87,26 @@ export default function ErrorsPage() {
             <p className="success-text">No se detectaron errores con las reglas actuales. 🎉</p>
           )}
 
+          {findings.length > 0 && (
+            <div
+              style={{
+                background: "linear-gradient(135deg, rgba(255,107,107,0.12), rgba(255,107,107,0.03))",
+                border: `1px solid ${LEVEL_COLOR[findings[0].level]}`,
+                borderRadius: 12,
+                padding: 18,
+                marginBottom: 20,
+              }}
+            >
+              <p style={{ color: LEVEL_COLOR[findings[0].level], fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 6 }}>
+                🎯 CORRIGE ESTO PRIMERO
+              </p>
+              <strong style={{ color: "var(--color-white)", fontSize: 17 }}>
+                {findings[0].type.replaceAll("_", " ")}
+              </strong>
+              <p style={{ color: "var(--color-white)", fontSize: 14, marginTop: 8 }}>{findings[0].howToFix}</p>
+            </div>
+          )}
+
           {findings.map((f, i) => (
             <div
               key={i}
@@ -93,6 +120,7 @@ export default function ErrorsPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <strong style={{ color: "var(--color-white)" }}>
+                  {i === 0 ? "🎯 " : ""}
                   {f.type.replaceAll("_", " ")}
                 </strong>
                 <span style={{ color: LEVEL_COLOR[f.level], fontSize: 12, fontWeight: 700 }}>

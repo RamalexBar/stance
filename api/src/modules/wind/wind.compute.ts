@@ -73,6 +73,44 @@ export function classifyShoreWind(
   };
 }
 
+/**
+ * Aviso adicional según el nivel del deportista — la misma condición de
+ * viento no representa el mismo riesgo para un principiante que para un
+ * avanzado. Es una capa de criterio simple sobre la clasificación de costa
+ * ya calculada, no un modelo de seguridad certificado.
+ */
+export function levelCaution(
+  level: SkillLevel | null,
+  windSpeedKmh: number,
+  windGustsKmh: number,
+  safetyLevel: ShoreClassificationResult["safetyLevel"]
+): string | null {
+  if (level === "BEGINNER") {
+    if (safetyLevel !== "SEGURO") {
+      return "No recomendado para tu nivel: sal solo si vas acompañado de alguien con más experiencia, o espera mejores condiciones.";
+    }
+    if (windSpeedKmh > 25 || windGustsKmh > 35) {
+      return "Viento fuerte para tu nivel — considera ir acompañado o esperar un día con menos ráfagas.";
+    }
+    return null;
+  }
+
+  if (level === "INTERMEDIATE") {
+    if (safetyLevel === "PELIGROSO") {
+      return "Condiciones peligrosas incluso para nivel intermedio — evalúa con cuidado y considera ir acompañado.";
+    }
+    if (safetyLevel === "PRECAUCION" && windGustsKmh > 40) {
+      return "Ráfagas fuertes con viento paralelo a la costa — puede arrastrarte lejos de tu punto de entrada.";
+    }
+    if (windGustsKmh > 55) {
+      return "Ráfagas muy fuertes — aunque el viento venga hacia la playa, considera equipo más pequeño y estar atento a golpes de viento.";
+    }
+    return null;
+  }
+
+  return null;
+}
+
 export interface EquipmentRecommendation {
   discipline: Discipline;
   windSpeedKmh: number;

@@ -21,6 +21,10 @@ export interface VideoDto {
   originalName: string | null;
   durationSeconds: number | null;
   createdAt: Date;
+  hasPoseAnalysis?: boolean;
+  hasBiomechanics?: boolean;
+  hasMovement?: boolean;
+  hasErrors?: boolean;
 }
 
 function toDto(video: {
@@ -31,6 +35,10 @@ function toDto(video: {
   originalName: string | null;
   durationSeconds: number | null;
   createdAt: Date;
+  poseAnalysis?: { id: string } | null;
+  biomechanics?: { id: string } | null;
+  movement?: { id: string } | null;
+  errors?: { id: string } | null;
 }): VideoDto {
   return {
     id: video.id,
@@ -40,6 +48,14 @@ function toDto(video: {
     originalName: video.originalName,
     durationSeconds: video.durationSeconds,
     createdAt: video.createdAt,
+    // Presentes solo cuando vienen de listMine (findManyByUser incluye las
+    // relaciones); el frontend los usa para habilitar cada paso solo cuando
+    // el anterior ya está listo, en vez de dejar que el usuario se salte
+    // pasos y reciba un error críptico de "Fase X" del backend.
+    hasPoseAnalysis: video.poseAnalysis != null,
+    hasBiomechanics: video.biomechanics != null,
+    hasMovement: video.movement != null,
+    hasErrors: video.errors != null,
   };
 }
 
@@ -82,7 +98,7 @@ export const videoService = {
           tx
         );
       },
-      { isolationLevel: "Serializable" }
+      { isolationLevel: "Serializable", timeout: 15000 }
     );
 
     return {

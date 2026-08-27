@@ -36,7 +36,10 @@ export function createApp() {
     subscriptionsController.webhook
   );
 
-  app.use(express.json());
+  // 20000 frames x ~33 landmarks (pose.dto.ts) de un video largo puede pesar
+  // varios MB; el default de Express (100kb) rechazaba cualquier análisis de
+  // más de unos pocos segundos de video.
+  app.use(express.json({ limit: "20mb" }));
   app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));
 
   app.get("/health", (_req, res) => {

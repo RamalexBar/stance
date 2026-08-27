@@ -17,6 +17,49 @@ interface MovementResult {
   notDetectedYet: NotDetected[];
 }
 
+function JumpsSummary({ segments }: { segments: any[] }) {
+  const jumps = segments
+    .filter((s) => s.type === "SALTO")
+    .map((s) => s.endSeconds - s.startSeconds)
+    .filter((seconds) => seconds > 0);
+
+  if (jumps.length === 0) return null;
+
+  const best = Math.max(...jumps);
+
+  return (
+    <div
+      style={{
+        background: "linear-gradient(135deg, rgba(23,224,195,0.14), rgba(30,95,255,0.06))",
+        border: "1px solid var(--color-turquoise)",
+        borderRadius: 12,
+        padding: 18,
+        marginBottom: 20,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 12,
+      }}
+    >
+      <div>
+        <p style={{ color: "var(--color-turquoise)", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>
+          🪂 SALTOS DETECTADOS
+        </p>
+        <p style={{ color: "var(--color-muted)", fontSize: 13 }}>
+          {jumps.length} salto{jumps.length === 1 ? "" : "s"} en este video
+        </p>
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <p style={{ color: "var(--color-white)", fontSize: 28, fontWeight: 700, lineHeight: 1 }}>
+          {best.toFixed(1)}s
+        </p>
+        <p style={{ color: "var(--color-muted)", fontSize: 12 }}>mejor hangtime</p>
+      </div>
+    </div>
+  );
+}
+
 export default function MovementPage() {
   const { id } = useParams<{ id: string }>();
   const { ready } = useRequireAuth();
@@ -61,6 +104,8 @@ export default function MovementPage() {
 
       {state === "ready" && data && (
         <>
+          <JumpsSummary segments={data.segments} />
+
           <MovementTimeline segments={data.segments} />
 
           <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 16, marginTop: 28 }}>

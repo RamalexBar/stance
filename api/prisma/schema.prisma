@@ -144,6 +144,7 @@ model VideoSession {
   comparisonsAsPrimary   VideoComparison[] @relation("PrimaryVideo")
   comparisonsAsReference VideoComparison[] @relation("ReferenceVideo")
   coachPlan              CoachPlan?
+  gpsTrack               GpsTrack?
 
   @@index([userId, createdAt])
 }
@@ -349,6 +350,22 @@ enum SubscriptionStatus {
   PAST_DUE
   CANCELED
   TRIALING
+}
+
+// ── Fase 13: Velocidad y Distancia (GPS) ────────────────────────────────
+// Track de puntos GPS capturado por el cliente (mobile) DURANTE la
+// grabación del video. A diferencia de la altura del salto (Fase 2, que
+// necesita calibrar la cámara con la estatura del usuario), velocidad y
+// distancia se calculan directo de lat/lon con la fórmula de Haversine,
+// sin ambigüedad de escala — por eso no dependen de PoseAnalysis.
+
+model GpsTrack {
+  id         String       @id @default(uuid())
+  videoId    String       @unique
+  video      VideoSession @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  pointsJson Json         // [{ tSeconds, lat, lon, accuracyMeters? }, ...]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 }
 
 // ── Fase 9: Entrenador IA ────────────────────────────────────────────────

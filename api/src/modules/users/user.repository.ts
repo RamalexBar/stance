@@ -66,19 +66,24 @@ export const userRepository = {
   ): Promise<UserWithRelations> {
     const { disciplines, ...profileFields } = data;
 
-    return prisma.$transaction(async (tx) => {
-      if (disciplines) {
-        await tx.userDiscipline.deleteMany({ where: { userId: id } });
-        await tx.userDiscipline.createMany({
-          data: disciplines.map((discipline) => ({ userId: id, discipline })),
-        });
-      }
+    return prisma.$transaction(
+      async (tx) => {
+        if (disciplines) {
+          await tx.userDiscipline.deleteMany({ where: { userId: id } });
+          await tx.userDiscipline.createMany({
+            data: disciplines.map((discipline) => ({ userId: id, discipline })),
+          });
+        }
 
-      return tx.user.update({
-        where: { id },
-        data: profileFields,
-        include: userWithRelations,
-      });
-    });
+        return tx.user.update({
+          where: { id },
+          data: profileFields,
+          include: userWithRelations,
+        });
+      },
+      // Default de Prisma (5000ms) se venía agotando en pruebas reales
+      // dejando el perfil sin guardar sin ninguna pista para el usuario.
+      { timeout: 15000 }
+    );
   },
 };
