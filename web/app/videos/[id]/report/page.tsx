@@ -74,7 +74,7 @@ export default function ReportPage() {
       <p className="footer-link" style={{ textAlign: "left", marginBottom: 8 }}>
         <Link href="/videos">← Volver a mis videos</Link>
       </p>
-      <h1 style={{ color: "var(--color-turquoise)", marginBottom: 4 }}>Reporte</h1>
+      <h1 style={{ color: "var(--color-turquoise)", marginBottom: 4 }}>Resultado</h1>
       <p className="subtitle">Descarga, comparte o envía el análisis de esta sesión</p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>

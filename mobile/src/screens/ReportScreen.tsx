@@ -49,7 +49,7 @@ export default function ReportScreen({ route }: RootStackScreenProps<"Report">) 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Reporte</Text>
+      <Text style={styles.title}>Resultado</Text>
       <Text style={styles.subtitle}>Descarga, comparte o envía el análisis por correo</Text>
 
       <TouchableOpacity style={styles.button} onPress={() => handleShare("pdf")} disabled={busy === "pdf"}>

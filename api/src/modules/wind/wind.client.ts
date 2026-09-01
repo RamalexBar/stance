@@ -15,6 +15,7 @@ export interface WindForecast {
     time: string;
     windSpeedKmh: number;
     windDirectionFromDeg: number;
+    windGustsKmh: number;
   }[];
 }
 
@@ -31,7 +32,7 @@ export async function fetchWindForecast(lat: number, lon: number): Promise<WindF
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lon));
   url.searchParams.set("current", "wind_speed_10m,wind_direction_10m,wind_gusts_10m");
-  url.searchParams.set("hourly", "wind_speed_10m,wind_direction_10m");
+  url.searchParams.set("hourly", "wind_speed_10m,wind_direction_10m,wind_gusts_10m");
   url.searchParams.set("forecast_days", "1");
   url.searchParams.set("timezone", "auto");
   url.searchParams.set("wind_speed_unit", "kmh");
@@ -42,7 +43,7 @@ export async function fetchWindForecast(lat: number, lon: number): Promise<WindF
   }
   const data = (await response.json()) as {
     current: { time: string; wind_speed_10m: number; wind_direction_10m: number; wind_gusts_10m: number };
-    hourly: { time: string[]; wind_speed_10m: number[]; wind_direction_10m: number[] };
+    hourly: { time: string[]; wind_speed_10m: number[]; wind_direction_10m: number[]; wind_gusts_10m: number[] };
   };
 
   return {
@@ -56,6 +57,7 @@ export async function fetchWindForecast(lat: number, lon: number): Promise<WindF
       time,
       windSpeedKmh: data.hourly.wind_speed_10m[i],
       windDirectionFromDeg: data.hourly.wind_direction_10m[i],
+      windGustsKmh: data.hourly.wind_gusts_10m[i],
     })),
   };
 }

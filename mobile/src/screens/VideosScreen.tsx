@@ -333,7 +333,7 @@ export default function VideosScreen({ navigation }: RootStackScreenProps<"Video
                     navigation.navigate("Report", { videoId: item.id })
                   }
                 >
-                  <Text style={{ color: colors.white }}>Reporte</Text>
+                  <Text style={{ color: colors.white }}>Resultado</Text>
                 </TouchableOpacity>
               </View>
             )}

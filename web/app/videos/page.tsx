@@ -281,7 +281,7 @@ export default function VideosPage() {
                 />
                 <StepLink
                   href={`/videos/${v.id}/report`}
-                  label="Reporte"
+                  label="Resultado"
                   enabled={!!v.hasPoseAnalysis}
                   disabledReason="Primero corre 'Analizar' en este video."
                 />

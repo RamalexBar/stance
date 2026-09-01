@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "../../hooks/useRequireAuth";
 import { apiGet } from "../../lib/api";
-import MetricChart from "../../components/MetricChart";
 
 type ShoreClassification = "ONSHORE" | "CROSS_ONSHORE" | "CROSS" | "CROSS_OFFSHORE" | "OFFSHORE";
 type SafetyLevel = "SEGURO" | "PRECAUCION" | "PELIGROSO";
+type WindSpeedBandId = "INVIABLE" | "MARGINAL" | "BUENO" | "PERFECTO" | "AVANZADO" | "EXIGENTE" | "PELIGROSO";
 
 interface ShoreResult {
   classification: ShoreClassification;
@@ -26,7 +26,16 @@ interface TodayWind {
     shore: ShoreResult;
     levelCaution: string | null;
   };
-  hourly: { time: string; windSpeedKmh: number; windDirectionFromDeg: number; shore: ShoreClassification }[];
+  hourly: {
+    time: string;
+    windSpeedKmh: number;
+    windGustsKmh: number;
+    windDirectionFromDeg: number;
+    shore: ShoreClassification;
+    shoreSafetyLevel: SafetyLevel;
+    band: WindSpeedBandId;
+    gustBand: WindSpeedBandId;
+  }[];
   recommendation: {
     discipline: string;
     windSpeedKmh: number;
@@ -49,6 +58,37 @@ const CLASSIFICATION_LABEL: Record<ShoreClassification, string> = {
   CROSS: "Paralelo a la costa",
   CROSS_OFFSHORE: "Cruzado, hacia el mar",
   OFFSHORE: "Hacia el mar abierto (offshore)",
+};
+
+const SHORE_SHORT_LABEL: Record<ShoreClassification, string> = {
+  ONSHORE: "Playa",
+  CROSS_ONSHORE: "Playa ↘",
+  CROSS: "Lateral",
+  CROSS_OFFSHORE: "Mar ↘",
+  OFFSHORE: "Mar",
+};
+
+// Escala de 7 colores estilo Windy/Windfinder para foil (kite y wing),
+// evaluada en nudos — debe coincidir con WIND_SPEED_BANDS en
+// api/src/modules/wind/wind.compute.ts.
+const BAND_COLOR: Record<WindSpeedBandId, string> = {
+  INVIABLE: "#8ECFEA",
+  MARGINAL: "#9CCB4A",
+  BUENO: "#2E7D32",
+  PERFECTO: "#FFD600",
+  AVANZADO: "#FF9800",
+  EXIGENTE: "#E53935",
+  PELIGROSO: "#8E24AA",
+};
+
+const BAND_LABEL: Record<WindSpeedBandId, string> = {
+  INVIABLE: "Inviable",
+  MARGINAL: "Marginal",
+  BUENO: "Bueno",
+  PERFECTO: "Perfecto (sweet spot)",
+  AVANZADO: "Avanzado",
+  EXIGENTE: "Exigente",
+  PELIGROSO: "Peligroso",
 };
 
 const DISCIPLINES = ["KITESURF", "WINGFOIL"];
@@ -86,11 +126,6 @@ export default function WindPage() {
       }
     }
   }
-
-  const hourlySeries = data?.hourly.map((h) => ({
-    tSeconds: new Date(h.time).getHours(),
-    windSpeedKmh: h.windSpeedKmh,
-  }));
 
   return (
     <div style={{ minHeight: "100vh", padding: "40px 24px", maxWidth: 720, margin: "0 auto" }}>
@@ -175,14 +210,77 @@ export default function WindPage() {
             )}
           </div>
 
-          {hourlySeries && hourlySeries.length > 0 && (
-            <MetricChart
-              title="Viento por hora (hoy)"
-              series={hourlySeries}
-              xLabel="hora del día"
-              yLabel="km/h"
-              lines={[{ key: "windSpeedKmh", label: "Viento", color: "#17E0C3" }]}
-            />
+          {data.hourly.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ color: "var(--color-white)", fontWeight: 600, marginBottom: 4 }}>Viento por hora (hoy)</p>
+              <p style={{ color: "var(--color-muted)", fontSize: 11, marginBottom: 8 }}>
+                Color = intensidad del viento para foil/kite · flecha = hacia dónde sopla · ⚠️ = dirección hacia mar
+                abierto
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", marginBottom: 10, fontSize: 10.5, color: "var(--color-muted)" }}>
+                {(Object.keys(BAND_LABEL) as WindSpeedBandId[]).map((id) => (
+                  <LegendDot key={id} color={BAND_COLOR[id]} label={BAND_LABEL[id]} />
+                ))}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                {data.hourly.map((h) => {
+                  const hour = new Date(h.time).getHours();
+                  const color = BAND_COLOR[h.band];
+                  const travelDeg = (h.windDirectionFromDeg + 180) % 360;
+                  const gustRiskier = h.gustBand !== h.band;
+                  const offshoreRisk = h.shoreSafetyLevel === "PELIGROSO";
+                  return (
+                    <div
+                      key={h.time}
+                      title={`${BAND_LABEL[h.band]} · ${CLASSIFICATION_LABEL[h.shore]}`}
+                      style={{
+                        position: "relative",
+                        background: "var(--color-black-soft)",
+                        borderRadius: 8,
+                        padding: "8px 6px",
+                        textAlign: "center",
+                        borderTop: `4px solid ${color}`,
+                      }}
+                    >
+                      {offshoreRisk && (
+                        <span style={{ position: "absolute", top: 2, right: 4, fontSize: 10 }}>⚠️</span>
+                      )}
+                      <div style={{ color: "var(--color-white)", fontSize: 12, fontWeight: 700 }}>
+                        {hour.toString().padStart(2, "0")}:00
+                      </div>
+                      <div style={{ color, fontSize: 14, fontWeight: 700, margin: "4px 0" }}>
+                        {fmt(h.windSpeedKmh)} km/h
+                      </div>
+                      {gustRiskier && (
+                        <div style={{ color: BAND_COLOR[h.gustBand], fontSize: 9, marginBottom: 2 }}>
+                          ráfagas {fmt(h.windGustsKmh)}
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          display: "inline-block",
+                          transform: `rotate(${travelDeg}deg)`,
+                          color: "var(--color-muted)",
+                          fontSize: 14,
+                          lineHeight: 1,
+                        }}
+                      >
+                        ↑
+                      </div>
+                      <div style={{ color: "var(--color-muted)", fontSize: 10, marginTop: 2 }}>
+                        {SHORE_SHORT_LABEL[h.shore]}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 16, marginTop: 8 }}>
@@ -224,5 +322,14 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div style={{ color: "var(--color-muted)", fontSize: 11, marginBottom: 4 }}>{label}</div>
       <div style={{ color: "var(--color-white)", fontSize: 16, fontWeight: 700 }}>{value}</div>
     </div>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+      {label}
+    </span>
   );
 }

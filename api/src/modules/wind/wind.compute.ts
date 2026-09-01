@@ -111,6 +111,45 @@ export function levelCaution(
   return null;
 }
 
+export type WindSpeedBandId =
+  | "INVIABLE"
+  | "MARGINAL"
+  | "BUENO"
+  | "PERFECTO"
+  | "AVANZADO"
+  | "EXIGENTE"
+  | "PELIGROSO";
+
+export interface WindSpeedBand {
+  id: WindSpeedBandId;
+  color: string;
+  label: string;
+}
+
+const KMH_PER_KNOT = 1.852;
+
+/**
+ * Escala de 7 colores estilo Windy/Windfinder para foil (wing/kite), en
+ * nudos — mismos rangos para ambas disciplinas por ahora, a falta de una
+ * tabla específica de kitesurf. Los límites se evalúan en nudos (no km/h)
+ * para que coincidan exactamente con la tabla de referencia.
+ */
+const WIND_SPEED_BANDS: { id: WindSpeedBandId; maxKt: number; color: string; label: string }[] = [
+  { id: "INVIABLE", maxKt: 7, color: "#8ECFEA", label: "Inviable" },
+  { id: "MARGINAL", maxKt: 11, color: "#9CCB4A", label: "Marginal" },
+  { id: "BUENO", maxKt: 15, color: "#2E7D32", label: "Bueno" },
+  { id: "PERFECTO", maxKt: 20, color: "#FFD600", label: "Perfecto (sweet spot)" },
+  { id: "AVANZADO", maxKt: 25, color: "#FF9800", label: "Avanzado" },
+  { id: "EXIGENTE", maxKt: 30, color: "#E53935", label: "Exigente" },
+  { id: "PELIGROSO", maxKt: Infinity, color: "#8E24AA", label: "Peligroso" },
+];
+
+export function classifyWindSpeedBand(windSpeedKmh: number): WindSpeedBand {
+  const knots = windSpeedKmh / KMH_PER_KNOT;
+  const band = WIND_SPEED_BANDS.find((b) => knots <= b.maxKt) ?? WIND_SPEED_BANDS[WIND_SPEED_BANDS.length - 1];
+  return { id: band.id, color: band.color, label: band.label };
+}
+
 export interface EquipmentRecommendation {
   discipline: Discipline;
   windSpeedKmh: number;

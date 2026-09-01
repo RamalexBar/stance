@@ -1,7 +1,15 @@
 import { Discipline } from "@prisma/client";
 import { userRepository } from "../users/user.repository";
 import { fetchWindForecast, searchSpots, SpotSearchResult } from "./wind.client";
-import { classifyShoreWind, recommendEquipment, levelCaution, EquipmentRecommendation, ShoreClassificationResult } from "./wind.compute";
+import {
+  classifyShoreWind,
+  classifyWindSpeedBand,
+  recommendEquipment,
+  levelCaution,
+  EquipmentRecommendation,
+  ShoreClassificationResult,
+  WindSpeedBandId,
+} from "./wind.compute";
 import { AppError, NotFoundError } from "../../shared/errors";
 
 export interface TodayWindResult {
@@ -17,8 +25,12 @@ export interface TodayWindResult {
   hourly: {
     time: string;
     windSpeedKmh: number;
+    windGustsKmh: number;
     windDirectionFromDeg: number;
     shore: ShoreClassificationResult["classification"];
+    shoreSafetyLevel: ShoreClassificationResult["safetyLevel"];
+    band: WindSpeedBandId;
+    gustBand: WindSpeedBandId;
   }[];
   recommendation: EquipmentRecommendation;
 }
@@ -69,12 +81,19 @@ export const windService = {
           currentShore.safetyLevel
         ),
       },
-      hourly: forecast.hourly.map((h) => ({
-        time: h.time,
-        windSpeedKmh: h.windSpeedKmh,
-        windDirectionFromDeg: h.windDirectionFromDeg,
-        shore: classifyShoreWind(h.windDirectionFromDeg, seaDirectionDeg).classification,
-      })),
+      hourly: forecast.hourly.map((h) => {
+        const hourShore = classifyShoreWind(h.windDirectionFromDeg, seaDirectionDeg);
+        return {
+          time: h.time,
+          windSpeedKmh: h.windSpeedKmh,
+          windGustsKmh: h.windGustsKmh,
+          windDirectionFromDeg: h.windDirectionFromDeg,
+          shore: hourShore.classification,
+          shoreSafetyLevel: hourShore.safetyLevel,
+          band: classifyWindSpeedBand(h.windSpeedKmh).id,
+          gustBand: classifyWindSpeedBand(h.windGustsKmh).id,
+        };
+      }),
       recommendation: recommendEquipment({
         discipline,
         weightKg: user.weightKg,
