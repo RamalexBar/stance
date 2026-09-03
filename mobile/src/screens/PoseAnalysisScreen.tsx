@@ -54,7 +54,11 @@ export default function PoseAnalysisScreen({ route }: RootStackScreenProps<"Pose
 
       if (type === "error") {
         setState("error");
-        setMessage("No se detectó pose en este video. Verifica el encuadre.");
+        setMessage(
+          typeof payload === "string" && payload.trim().length > 0
+            ? payload
+            : "No se detectó pose en este video. Verifica el encuadre."
+        );
         return;
       }
 

@@ -86,7 +86,7 @@ export const POSE_ENGINE_HTML = `
       const videoUrl = window.__STANCE_VIDEO_URL__;
       if (!videoUrl) {
         statusEl.textContent = "No se recibió URL de video.";
-        post("error", "missing-video-url");
+        post("error", "No se recibió la URL del video a analizar.");
         return;
       }
 
@@ -101,6 +101,12 @@ export const POSE_ENGINE_HTML = `
         },
         runningMode: "VIDEO",
         numPoses: 1,
+        // Igual que en web/lib/poseLandmarker.ts: más permisivo que el 0.5
+        // por defecto para que un deportista pequeño y lejano (grabado desde
+        // la playa) no se rechace de entrada.
+        minPoseDetectionConfidence: 0.3,
+        minPosePresenceConfidence: 0.3,
+        minTrackingConfidence: 0.3,
       });
 
       video.src = videoUrl;
@@ -127,8 +133,13 @@ export const POSE_ENGINE_HTML = `
 
       video.onended = () => {
         if (frames.length === 0) {
-          statusEl.textContent = "No se detectó pose en el video.";
-          post("error", "no-frames-detected");
+          const tip = "No se detectó ninguna pose en todo el video. Revisa el encuadre: " +
+            "el deportista debe verse completo (de cabeza a pies) y de lado, ocupando " +
+            "buena parte del cuadro — ni tan cerca que corte pies o cabeza, ni tan " +
+            "lejos que se vea como un punto pequeño. Evita que haya más de una " +
+            "persona visible en el video.";
+          statusEl.textContent = tip;
+          post("error", tip);
           return;
         }
         const duration = video.duration || frames[frames.length - 1].tSeconds || 1;

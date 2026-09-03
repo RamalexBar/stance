@@ -20,6 +20,14 @@ export function getPoseLandmarker(): Promise<PoseLandmarker> {
         },
         runningMode: "VIDEO",
         numPoses: 1,
+        // Por defecto estos tres están en 0.5 — muy estricto para deportes
+        // acuáticos grabados desde lejos (playa/drone), donde el deportista
+        // ocupa pocos píxeles del cuadro. Bajarlos no cambia el modelo ni el
+        // rendimiento, solo qué tan dispuesto está a aceptar una detección
+        // de menor certeza en vez de reportar "no hay pose".
+        minPoseDetectionConfidence: 0.3,
+        minPosePresenceConfidence: 0.3,
+        minTrackingConfidence: 0.3,
       });
     })();
   }

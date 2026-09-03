@@ -134,7 +134,13 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
 
     if (frames.length === 0) {
       setState("error");
-      setMessage("No se detectó ninguna pose en el video. Verifica el encuadre.");
+      setMessage(
+        "No se detectó ninguna pose en todo el video. Revisa el encuadre: el " +
+          "deportista debe verse completo (de cabeza a pies) y de lado, ocupando " +
+          "buena parte del cuadro — ni tan cerca que corte pies o cabeza, ni tan " +
+          "lejos que se vea como un punto pequeño. Evita que haya más de una " +
+          "persona visible en el video."
+      );
       return;
     }
 
