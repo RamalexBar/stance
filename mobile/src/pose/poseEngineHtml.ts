@@ -38,9 +38,14 @@ export const POSE_ENGINE_HTML = `
     import {
       FilesetResolver,
       PoseLandmarker,
+      ObjectDetector,
     } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
     const CONFIDENCE_THRESHOLD = 0.5;
+    // Cada cuántos cuadros se vuelve a ubicar a la persona con el detector
+    // de objetos para actualizar la zona de recorte (ver PoseAnalyzer.tsx
+    // en web — misma lógica).
+    const PERSON_DETECT_INTERVAL = 10;
     const CONNECTIONS = [
       [11,12],[11,13],[13,15],[12,14],[14,16],
       [11,23],[12,24],[23,24],
@@ -54,9 +59,32 @@ export const POSE_ENGINE_HTML = `
     const ctx = canvas.getContext("2d");
     const statusEl = document.getElementById("status");
     const frames = [];
+    const cropCanvas = document.createElement("canvas");
+    const cropCtx = cropCanvas.getContext("2d");
+    let cropBox = null;
+    let frameIndex = 0;
 
     function post(type, payload) {
       window.ReactNativeWebView?.postMessage(JSON.stringify({ type, payload }));
+    }
+
+    function padBox(box, videoWidth, videoHeight, paddingRatio) {
+      const padX = box.width * paddingRatio;
+      const padY = box.height * paddingRatio;
+      const x = Math.max(0, box.originX - padX);
+      const y = Math.max(0, box.originY - padY);
+      const right = Math.min(videoWidth, box.originX + box.width + padX);
+      const bottom = Math.min(videoHeight, box.originY + box.height + padY);
+      return { x, y, width: right - x, height: bottom - y };
+    }
+
+    function remapToFullFrame(landmarks, crop, videoWidth, videoHeight) {
+      return landmarks.map((l) => ({
+        x: (crop.x + l.x * crop.width) / videoWidth,
+        y: (crop.y + l.y * crop.height) / videoHeight,
+        z: l.z,
+        visibility: l.visibility,
+      }));
     }
 
     function drawFrame(landmarks) {
@@ -93,21 +121,34 @@ export const POSE_ENGINE_HTML = `
       const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
       );
-      const landmarker = await PoseLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-          delegate: "GPU",
-        },
-        runningMode: "VIDEO",
-        numPoses: 1,
-        // Igual que en web/lib/poseLandmarker.ts: más permisivo que el 0.5
-        // por defecto para que un deportista pequeño y lejano (grabado desde
-        // la playa) no se rechace de entrada.
-        minPoseDetectionConfidence: 0.3,
-        minPosePresenceConfidence: 0.3,
-        minTrackingConfidence: 0.3,
-      });
+      const [landmarker, personDetector] = await Promise.all([
+        PoseLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          // Igual que en web/lib/poseLandmarker.ts: más permisivo que el 0.5
+          // por defecto para que un deportista pequeño y lejano (grabado desde
+          // la playa) no se rechace de entrada.
+          minPoseDetectionConfidence: 0.3,
+          minPosePresenceConfidence: 0.3,
+          minTrackingConfidence: 0.3,
+        }),
+        ObjectDetector.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/latest/efficientdet_lite2.tflite",
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          maxResults: 1,
+          scoreThreshold: 0.15,
+          categoryAllowlist: ["person"],
+        }),
+      ]);
 
       video.src = videoUrl;
       await new Promise((resolve) => { video.onloadedmetadata = resolve; });
@@ -121,9 +162,44 @@ export const POSE_ENGINE_HTML = `
 
       function loop() {
         if (video.paused || video.ended) return;
-        const result = landmarker.detectForVideo(video, performance.now());
-        const landmarks = result.landmarks?.[0];
-        if (landmarks && landmarks.length === 33) {
+        const now = performance.now();
+
+        if (frameIndex % PERSON_DETECT_INTERVAL === 0) {
+          const detection = personDetector.detectForVideo(video, now);
+          const box = detection.detections[0]?.boundingBox;
+          if (box) cropBox = padBox(box, video.videoWidth, video.videoHeight, 0.4);
+        }
+        frameIndex += 1;
+
+        let landmarks;
+        if (cropBox && cropBox.width > 0 && cropBox.height > 0) {
+          const targetMax = 768;
+          const scale = Math.max(1, targetMax / Math.max(cropBox.width, cropBox.height));
+          cropCanvas.width = Math.round(cropBox.width * scale);
+          cropCanvas.height = Math.round(cropBox.height * scale);
+          cropCtx.drawImage(
+            video,
+            cropBox.x,
+            cropBox.y,
+            cropBox.width,
+            cropBox.height,
+            0,
+            0,
+            cropCanvas.width,
+            cropCanvas.height
+          );
+          const result = landmarker.detectForVideo(cropCanvas, now);
+          const raw = result.landmarks?.[0];
+          if (raw && raw.length === 33) {
+            landmarks = remapToFullFrame(raw, cropBox, video.videoWidth, video.videoHeight);
+          }
+        } else {
+          const result = landmarker.detectForVideo(video, now);
+          const raw = result.landmarks?.[0];
+          if (raw && raw.length === 33) landmarks = raw;
+        }
+
+        if (landmarks) {
           drawFrame(landmarks);
           frames.push({ tSeconds: video.currentTime, landmarks });
         }

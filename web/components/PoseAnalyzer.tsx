@@ -6,6 +6,7 @@ import {
   POSE_CONNECTIONS,
   CONFIDENCE_THRESHOLD,
 } from "../lib/poseLandmarker";
+import { getPersonDetector, locatePerson, padBox, PixelBox } from "../lib/personDetector";
 import { apiPost } from "../lib/api";
 
 interface Landmark {
@@ -13,6 +14,21 @@ interface Landmark {
   y: number;
   z: number;
   visibility?: number;
+}
+
+// Cada cuántos cuadros se vuelve a ubicar a la persona con el detector de
+// objetos (más pesado que el de pose) para actualizar la zona de recorte.
+// No hace falta en cada cuadro: el deportista no se desplaza tanto en
+// 200-400ms como para que el recorte anterior deje de servir.
+const PERSON_DETECT_INTERVAL = 10;
+
+function remapToFullFrame(landmarks: Landmark[], crop: PixelBox, videoWidth: number, videoHeight: number): Landmark[] {
+  return landmarks.map((l) => ({
+    x: (crop.x + l.x * crop.width) / videoWidth,
+    y: (crop.y + l.y * crop.height) / videoHeight,
+    z: l.z,
+    visibility: l.visibility,
+  }));
 }
 
 interface CapturedFrame {
@@ -30,6 +46,9 @@ type AnalysisState = "idle" | "running" | "saving" | "done" | "error";
 export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cropCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cropBoxRef = useRef<PixelBox | null>(null);
+  const frameIndexRef = useRef(0);
   const framesRef = useRef<CapturedFrame[]>([]);
   const attemptedFramesRef = useRef(0);
   const rafRef = useRef<number | null>(null);
@@ -92,14 +111,23 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
     if (!video || !canvas) return;
 
     setState("running");
-    setMessage("Cargando modelo de pose…");
+    setMessage("Cargando modelos…");
     framesRef.current = [];
     attemptedFramesRef.current = 0;
+    cropBoxRef.current = null;
+    frameIndexRef.current = 0;
 
-    const landmarker = await getPoseLandmarker();
+    const [landmarker, personDetector] = await Promise.all([
+      getPoseLandmarker(),
+      getPersonDetector(),
+    ]);
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+
+    if (!cropCanvasRef.current) cropCanvasRef.current = document.createElement("canvas");
+    const cropCanvas = cropCanvasRef.current;
+    const cropCtx = cropCanvas.getContext("2d");
 
     video.currentTime = 0;
     await video.play();
@@ -108,11 +136,57 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
     const loop = () => {
       if (video.paused || video.ended) return;
 
-      const result = landmarker.detectForVideo(video, performance.now());
-      const landmarks = result.landmarks?.[0];
+      const now = performance.now();
+
+      // Cada PERSON_DETECT_INTERVAL cuadros, ubica (o reubica) a la persona
+      // en el cuadro completo para actualizar la zona de recorte. Si no la
+      // encuentra en este muestreo, mantiene la última zona conocida en vez
+      // de descartarla — una ola o un giro brusco no debería tirar todo el
+      // seguimiento.
+      if (frameIndexRef.current % PERSON_DETECT_INTERVAL === 0) {
+        const box = locatePerson(personDetector, video, now);
+        if (box) cropBoxRef.current = padBox(box, video.videoWidth, video.videoHeight);
+      }
+      frameIndexRef.current += 1;
+
+      const crop = cropBoxRef.current;
+      let landmarks: Landmark[] | undefined;
+
+      if (crop && cropCtx && crop.width > 0 && crop.height > 0) {
+        // Recorta la zona de la persona y la agranda antes de buscar la
+        // pose — así un deportista pequeño y lejano (grabado desde la
+        // playa) deja de perderse en la reducción de resolución interna
+        // del modelo. Las coordenadas que devuelve están normalizadas al
+        // recorte, así que se convierten de vuelta al cuadro completo.
+        const targetMax = 768;
+        const scale = Math.max(1, targetMax / Math.max(crop.width, crop.height));
+        cropCanvas.width = Math.round(crop.width * scale);
+        cropCanvas.height = Math.round(crop.height * scale);
+        cropCtx.drawImage(
+          video,
+          crop.x,
+          crop.y,
+          crop.width,
+          crop.height,
+          0,
+          0,
+          cropCanvas.width,
+          cropCanvas.height
+        );
+        const result = landmarker.detectForVideo(cropCanvas, now);
+        const raw = result.landmarks?.[0];
+        if (raw && raw.length === 33) {
+          landmarks = remapToFullFrame(raw, crop, video.videoWidth, video.videoHeight);
+        }
+      } else {
+        const result = landmarker.detectForVideo(video, now);
+        const raw = result.landmarks?.[0];
+        if (raw && raw.length === 33) landmarks = raw;
+      }
+
       attemptedFramesRef.current += 1;
 
-      if (landmarks && landmarks.length === 33) {
+      if (landmarks) {
         drawFrame(landmarks);
         framesRef.current.push({ tSeconds: video.currentTime, landmarks });
       }

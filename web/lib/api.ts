@@ -84,6 +84,14 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return json.data as T;
 }
 
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: { ...(await authHeader()) },
+  });
+  if (!res.ok) await throwApiError(res, `Error ${res.status} al eliminar ${path}`);
+}
+
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "PATCH",

@@ -58,4 +58,10 @@ export const videoRepository = {
       data: { status: VideoStatus.FAILED },
     });
   },
+
+  // Cascada definida en el schema: borra también PoseAnalysis, Biomechanics,
+  // MovementAnalysis, ErrorAnalysis, VideoComparison y CoachPlan asociados.
+  deleteById(id: string) {
+    return prisma.videoSession.delete({ where: { id } });
+  },
 };

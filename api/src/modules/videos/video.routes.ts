@@ -36,6 +36,10 @@ videoRouter.get("/", videoController.listMine);
 // GET /api/v1/videos/:id — metadata + URL firmada de reproducción
 videoRouter.get("/:id", videoController.getPlayable);
 
+// DELETE /api/v1/videos/:id — borra el video (storage + BD en cascada) y
+// libera cupo del límite mensual del plan.
+videoRouter.delete("/:id", videoController.remove);
+
 // PATCH /api/v1/videos/:id/complete — confirma que la subida a Storage terminó
 videoRouter.patch(
   "/:id/complete",

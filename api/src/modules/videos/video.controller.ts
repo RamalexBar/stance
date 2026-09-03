@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { videoService } from "./video.service";
 import { userService } from "../users/user.service";
-import { ok, created } from "../../shared/apiResponse";
+import { ok, created, noContent } from "../../shared/apiResponse";
 import { UnauthorizedError } from "../../shared/errors";
 
 async function resolveUserId(req: Request): Promise<string> {
@@ -56,6 +56,16 @@ export const videoController = {
       const userId = await resolveUserId(req);
       const result = await videoService.getPlayable(userId, req.params.id);
       ok(res, result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async remove(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = await resolveUserId(req);
+      await videoService.remove(userId, req.params.id);
+      noContent(res);
     } catch (err) {
       next(err);
     }

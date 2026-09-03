@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "../../hooks/useRequireAuth";
-import { apiGet, apiPatch, apiPost } from "../../lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../../lib/api";
 import { supabaseClient } from "../../lib/supabaseClient";
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_VIDEOS_BUCKET ?? "videos";
@@ -85,6 +85,7 @@ export default function VideosPage() {
   const [uploading, setUploading] = useState(false);
   const [progressMsg, setProgressMsg] = useState<string | null>(null);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -150,6 +151,20 @@ export default function VideosPage() {
       setPlaybackUrl(detail.playbackUrl);
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async function handleDelete(videoId: string, name: string | null) {
+    if (!confirm(`¿Eliminar "${name ?? "este video"}"? Esta acción no se puede deshacer.`)) return;
+    setDeletingId(videoId);
+    try {
+      await apiDelete(`/api/v1/videos/${videoId}`);
+      await refreshVideos();
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo eliminar el video.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -230,63 +245,79 @@ export default function VideosPage() {
                 {v.durationSeconds ? ` · ${Math.round(v.durationSeconds)}s` : ""}
               </div>
             </div>
-            {v.status === "UPLOADED" && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                <button
-                  className="btn-secondary"
-                  style={{ width: "auto", padding: "8px 14px", margin: 0 }}
-                  onClick={() => handlePlay(v.id)}
-                >
-                  Reproducir
-                </button>
-                <StepLink
-                  href={`/videos/${v.id}/analyze`}
-                  label="Analizar"
-                  enabled
-                  color="var(--color-turquoise)"
-                />
-                <StepLink
-                  href={`/videos/${v.id}/biomechanics`}
-                  label="Biomecánica"
-                  enabled={!!v.hasPoseAnalysis}
-                  disabledReason="Primero corre 'Analizar' en este video."
-                  color="var(--color-blue)"
-                />
-                <StepLink
-                  href={`/videos/${v.id}/movement`}
-                  label="Movimiento"
-                  enabled={!!v.hasPoseAnalysis}
-                  disabledReason="Primero corre 'Analizar' en este video."
-                />
-                <StepLink
-                  href={`/videos/${v.id}/errors`}
-                  label="Errores"
-                  enabled={!!v.hasBiomechanics && !!v.hasMovement}
-                  disabledReason="Primero corre 'Biomecánica' y 'Movimiento' en este video."
-                  color="#FF8A3D"
-                />
-                <StepLink
-                  href={`/videos/${v.id}/compare`}
-                  label="Comparar"
-                  enabled={!!v.hasPoseAnalysis}
-                  disabledReason="Primero corre 'Analizar' en este video."
-                />
-                <StepLink
-                  href={`/videos/${v.id}/coach`}
-                  label="Entrenador IA"
-                  enabled={!!v.hasBiomechanics && !!v.hasMovement && !!v.hasErrors}
-                  disabledReason="Primero corre 'Biomecánica', 'Movimiento' y 'Errores' en este video."
-                  color="var(--color-turquoise)"
-                  bold
-                />
-                <StepLink
-                  href={`/videos/${v.id}/report`}
-                  label="Resultado"
-                  enabled={!!v.hasPoseAnalysis}
-                  disabledReason="Primero corre 'Analizar' en este video."
-                />
-              </div>
-            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {v.status === "UPLOADED" && (
+                <>
+                  <button
+                    className="btn-secondary"
+                    style={{ width: "auto", padding: "8px 14px", margin: 0 }}
+                    onClick={() => handlePlay(v.id)}
+                  >
+                    Reproducir
+                  </button>
+                  <StepLink
+                    href={`/videos/${v.id}/analyze`}
+                    label="Analizar"
+                    enabled
+                    color="var(--color-turquoise)"
+                  />
+                  <StepLink
+                    href={`/videos/${v.id}/biomechanics`}
+                    label="Biomecánica"
+                    enabled={!!v.hasPoseAnalysis}
+                    disabledReason="Primero corre 'Analizar' en este video."
+                    color="var(--color-blue)"
+                  />
+                  <StepLink
+                    href={`/videos/${v.id}/movement`}
+                    label="Movimiento"
+                    enabled={!!v.hasPoseAnalysis}
+                    disabledReason="Primero corre 'Analizar' en este video."
+                  />
+                  <StepLink
+                    href={`/videos/${v.id}/errors`}
+                    label="Errores"
+                    enabled={!!v.hasBiomechanics && !!v.hasMovement}
+                    disabledReason="Primero corre 'Biomecánica' y 'Movimiento' en este video."
+                    color="#FF8A3D"
+                  />
+                  <StepLink
+                    href={`/videos/${v.id}/compare`}
+                    label="Comparar"
+                    enabled={!!v.hasPoseAnalysis}
+                    disabledReason="Primero corre 'Analizar' en este video."
+                  />
+                  <StepLink
+                    href={`/videos/${v.id}/coach`}
+                    label="Entrenador IA"
+                    enabled={!!v.hasBiomechanics && !!v.hasMovement && !!v.hasErrors}
+                    disabledReason="Primero corre 'Biomecánica', 'Movimiento' y 'Errores' en este video."
+                    color="var(--color-turquoise)"
+                    bold
+                  />
+                  <StepLink
+                    href={`/videos/${v.id}/report`}
+                    label="Resultado"
+                    enabled={!!v.hasPoseAnalysis}
+                    disabledReason="Primero corre 'Analizar' en este video."
+                  />
+                </>
+              )}
+              <button
+                className="btn-secondary"
+                style={{
+                  width: "auto",
+                  padding: "8px 14px",
+                  margin: 0,
+                  borderColor: "rgba(255,107,107,0.4)",
+                  color: "#FF6B6B",
+                }}
+                disabled={deletingId === v.id}
+                onClick={() => handleDelete(v.id, v.originalName)}
+              >
+                {deletingId === v.id ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
           </li>
         ))}
       </ul>

@@ -152,4 +152,26 @@ export const videoService = {
 
     return { ...toDto(video), playbackUrl: data.signedUrl };
   },
+
+  /**
+   * Borra el video: primero el archivo en Supabase Storage, luego la fila en
+   * BD (que en cascada se lleva pose/biomecánica/movimiento/errores/
+   * comparaciones/plan del entrenador asociados). Libera cupo del plan
+   * porque el límite mensual cuenta filas de VideoSession existentes.
+   */
+  async remove(userId: string, videoId: string) {
+    const video = await videoRepository.findById(videoId);
+    if (!video) throw new NotFoundError("Video no encontrado");
+    if (video.userId !== userId) throw new ForbiddenError();
+
+    const { error } = await supabaseAdmin.storage.from(VIDEOS_BUCKET).remove([video.storagePath]);
+    if (error) {
+      console.error("Supabase remove falló:", error.message);
+      // No bloqueamos el borrado del registro por un error del storage
+      // (p. ej. el archivo ya no existía) — el usuario quiere que el video
+      // desaparezca de su lista de todas formas.
+    }
+
+    await videoRepository.deleteById(videoId);
+  },
 };
