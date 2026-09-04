@@ -48,12 +48,19 @@ export interface MetricSummary {
   mean: number;
 }
 
+export interface ChartInsight {
+  explanation: string;
+  recommendation: string;
+}
+
 export interface BiomechanicsResult {
   series: FrameMetrics[];
   summary: Record<string, MetricSummary>;
   estimatedKneeLoadIndexAvg: number | null;
   approxTrunkOscillationsPerMinute: number | null;
   notesForUser: string[];
+  trunkInclinationInsight: ChartInsight | null;
+  balanceInsight: ChartInsight | null;
 }
 
 function computeFrameMetrics(landmarks: Landmark[]): Omit<FrameMetrics, "tSeconds"> | null {
@@ -192,6 +199,74 @@ function estimateOscillationsPerMinute(series: FrameMetrics[]): number | null {
   return cyclesPerSecond * 60;
 }
 
+/**
+ * Umbrales heurísticos (no clínicos) para pasar de "número crudo" a un
+ * comentario de técnica en español — calibrados a ojo sobre rangos
+ * plausibles de inclinación/balance en kite y wing foil, no sacados de un
+ * estudio. Sirven para orientar, no como diagnóstico.
+ */
+function trunkInclinationInsight(summary: MetricSummary): ChartInsight | null {
+  if (!Number.isFinite(summary.mean)) return null;
+  const range = summary.max - summary.min;
+  const parts: string[] = [];
+
+  if (summary.mean > 35) {
+    parts.push(
+      `Tu inclinación promedio fue de ${summary.mean.toFixed(0)}° respecto a la vertical — bastante pronunciada. Prueba flexionar más las piernas y llevar el tronco un poco más erguido: reduce la carga en la espalda baja y suele dar más control de la potencia.`
+    );
+  } else if (summary.mean < 10) {
+    parts.push(
+      `Tu inclinación promedio fue de solo ${summary.mean.toFixed(0)}° — muy vertical. Si sientes que te falta contrapeso contra la tracción del kite/vela, una inclinación algo mayor (apoyándote más hacia atrás) suele ayudar a generar más resistencia.`
+    );
+  } else {
+    parts.push(
+      `Tu inclinación promedio (${summary.mean.toFixed(0)}°) está en un rango razonable para mantener control sin forzar la espalda.`
+    );
+  }
+
+  if (range > 25) {
+    parts.push(
+      `Además varió bastante durante la maniobra (de ${summary.min.toFixed(0)}° a ${summary.max.toFixed(
+        0
+      )}°) — trabajar la consistencia postural puede ayudarte a navegar más estable.`
+    );
+  }
+
+  return {
+    explanation:
+      "Mide cuánto se inclina tu tronco respecto a la vertical, cuadro a cuadro. Una inclinación moderada y estable suele indicar buen control de la potencia del kite/vela; picos muy altos o muy variables pueden indicar pérdida de equilibrio o sobre-compensación.",
+    recommendation: parts.join(" "),
+  };
+}
+
+function balanceInsight(summary: MetricSummary): ChartInsight | null {
+  if (!Number.isFinite(summary.mean)) return null;
+  const range = summary.max - summary.min;
+  const parts: string[] = [];
+
+  if (Math.abs(summary.mean) > 0.4) {
+    parts.push(
+      `Tu peso estuvo consistentemente desplazado hacia un lado durante la maniobra (desviación promedio de ${summary.mean.toFixed(
+        2
+      )}, en unidades de ancho de cadera) — intenta centrar más el peso sobre la tabla, distribuido entre ambos pies, para mejor control y menos fatiga.`
+    );
+  } else {
+    parts.push(`Tu peso se mantuvo relativamente centrado (desviación promedio de ${summary.mean.toFixed(2)}).`);
+  }
+
+  if (range > 0.6) {
+    parts.push(
+      "También varió bastante durante la maniobra — trabajar la estabilidad del core puede ayudarte a mantener una posición más constante."
+    );
+  }
+
+  return {
+    explanation:
+      "Mide si tu peso está desplazado respecto al punto medio de tus pies, en unidades relativas al ancho de tu cadera (0 = centrado). Con cámara lateral, esto refleja principalmente adelante/atrás sobre la tabla — no se etiqueta la dirección exacta porque depende de hacia dónde mira la cámara en cada video.",
+    recommendation: parts.join(" "),
+  };
+}
+
 export const biomechanicsCompute = {
   /**
    * `weightKg` es opcional (viene del perfil del usuario). Sin él, se omite
@@ -231,18 +306,43 @@ export const biomechanicsCompute = {
       estimatedKneeLoadIndexAvg = average(loads);
     }
 
+    const approxTrunkOscillationsPerMinute = estimateOscillationsPerMinute(series);
+
+    // Las dos primeras y la última son límites estructurales de la
+    // plataforma (2D de una cámara, sin detección de equipo, sin sensores) —
+    // aplican siempre, a cualquier video. Las del medio solo se muestran
+    // cuando el dato al que se refieren realmente está presente/es relevante
+    // en ESTE video, con el número real en vez de una advertencia genérica.
+    const notesForUser: string[] = [
+      "Centro de masa, carga articular y rotación de tronco son ESTIMACIONES a partir de una sola cámara 2D, no mediciones exactas.",
+      "La altura de la barra/agarre de vela se infiere de la posición de las manos, no de una detección real del equipo (todavía no hay detección de objetos en la plataforma).",
+    ];
+    if (summary.symmetryDelta && summary.symmetryDelta.mean > 8) {
+      notesForUser.push(
+        `Tu diferencia izquierda/derecha promedio fue de ${summary.symmetryDelta.mean.toFixed(
+          1
+        )}° — puede ser asimetría real, pero con cámara lateral también puede deberse a oclusión del lado más lejano a la cámara.`
+      );
+    }
+    if (approxTrunkOscillationsPerMinute !== null) {
+      notesForUser.push(
+        `Esta maniobra (navegación en línea recta) no es cíclica por naturaleza: la cadencia mostrada (${approxTrunkOscillationsPerMinute.toFixed(
+          0
+        )}/min) es una referencia aproximada, no un conteo real de repeticiones.`
+      );
+    }
+    notesForUser.push(
+      "Tiempo de reacción, potencia estimada y fuerzas aplicadas no se calculan en esta fase: requieren un evento de inicio claro y/o datos de sensores que todavía no existen en la plataforma."
+    );
+
     return {
       series,
       summary,
       estimatedKneeLoadIndexAvg,
-      approxTrunkOscillationsPerMinute: estimateOscillationsPerMinute(series),
-      notesForUser: [
-        "Centro de masa, carga articular y rotación de tronco son ESTIMACIONES a partir de una sola cámara 2D, no mediciones exactas.",
-        "La altura de la barra/agarre de vela se infiere de la posición de las manos, no de una detección real del equipo (todavía no hay detección de objetos en la plataforma).",
-        "La simetría puede verse afectada por oclusión del lado más lejano a la cámara, no solo por asimetría real del cuerpo.",
-        "Esta maniobra (navegación en línea recta) no es cíclica por naturaleza: la 'cadencia' mostrada es una referencia aproximada, no un conteo real de repeticiones.",
-        "Tiempo de reacción, potencia estimada y fuerzas aplicadas no se calculan en esta fase: requieren un evento de inicio claro y/o datos de sensores que todavía no existen en la plataforma.",
-      ],
+      approxTrunkOscillationsPerMinute,
+      notesForUser,
+      trunkInclinationInsight: summary.trunkInclinationDeg ? trunkInclinationInsight(summary.trunkInclinationDeg) : null,
+      balanceInsight: summary.balanceOffset ? balanceInsight(summary.balanceOffset) : null,
     };
   },
 };

@@ -37,6 +37,8 @@ export const biomechanicsService = {
         estimatedKneeLoadIndexAvg: result.estimatedKneeLoadIndexAvg,
         approxTrunkOscillationsPerMinute: result.approxTrunkOscillationsPerMinute,
         notesForUser: result.notesForUser,
+        trunkInclinationInsight: result.trunkInclinationInsight,
+        balanceInsight: result.balanceInsight,
       } as unknown as object,
     });
 

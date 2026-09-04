@@ -116,11 +116,22 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
     attemptedFramesRef.current = 0;
     cropBoxRef.current = null;
     frameIndexRef.current = 0;
+    let cropAssistBroken = false;
 
-    const [landmarker, personDetector] = await Promise.all([
-      getPoseLandmarker(),
-      getPersonDetector(),
-    ]);
+    let landmarker, personDetector;
+    try {
+      [landmarker, personDetector] = await Promise.all([
+        getPoseLandmarker(),
+        getPersonDetector(),
+      ]);
+    } catch (err) {
+      console.error(err);
+      setState("error");
+      setMessage(
+        "No se pudo cargar el modelo de análisis (revisa tu conexión a internet y vuelve a intentar)."
+      );
+      return;
+    }
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -129,59 +140,75 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
     const cropCanvas = cropCanvasRef.current;
     const cropCtx = cropCanvas.getContext("2d");
 
-    video.currentTime = 0;
-    await video.play();
+    try {
+      video.currentTime = 0;
+      await video.play();
+    } catch (err) {
+      console.error(err);
+      setState("error");
+      setMessage("No se pudo reproducir el video para analizarlo.");
+      return;
+    }
     setMessage("Detectando pose…");
 
     const loop = () => {
       if (video.paused || video.ended) return;
 
       const now = performance.now();
-
-      // Cada PERSON_DETECT_INTERVAL cuadros, ubica (o reubica) a la persona
-      // en el cuadro completo para actualizar la zona de recorte. Si no la
-      // encuentra en este muestreo, mantiene la última zona conocida en vez
-      // de descartarla — una ola o un giro brusco no debería tirar todo el
-      // seguimiento.
-      if (frameIndexRef.current % PERSON_DETECT_INTERVAL === 0) {
-        const box = locatePerson(personDetector, video, now);
-        if (box) cropBoxRef.current = padBox(box, video.videoWidth, video.videoHeight);
-      }
-      frameIndexRef.current += 1;
-
-      const crop = cropBoxRef.current;
       let landmarks: Landmark[] | undefined;
 
-      if (crop && cropCtx && crop.width > 0 && crop.height > 0) {
-        // Recorta la zona de la persona y la agranda antes de buscar la
-        // pose — así un deportista pequeño y lejano (grabado desde la
-        // playa) deja de perderse en la reducción de resolución interna
-        // del modelo. Las coordenadas que devuelve están normalizadas al
-        // recorte, así que se convierten de vuelta al cuadro completo.
-        const targetMax = 768;
-        const scale = Math.max(1, targetMax / Math.max(crop.width, crop.height));
-        cropCanvas.width = Math.round(crop.width * scale);
-        cropCanvas.height = Math.round(crop.height * scale);
-        cropCtx.drawImage(
-          video,
-          crop.x,
-          crop.y,
-          crop.width,
-          crop.height,
-          0,
-          0,
-          cropCanvas.width,
-          cropCanvas.height
-        );
-        const result = landmarker.detectForVideo(cropCanvas, now);
-        const raw = result.landmarks?.[0];
-        if (raw && raw.length === 33) {
-          landmarks = remapToFullFrame(raw, crop, video.videoWidth, video.videoHeight);
+      try {
+        // Cada PERSON_DETECT_INTERVAL cuadros, ubica (o reubica) a la
+        // persona en el cuadro completo para actualizar la zona de recorte.
+        // Si no la encuentra en este muestreo, mantiene la última zona
+        // conocida en vez de descartarla — una ola o un giro brusco no
+        // debería tirar todo el seguimiento.
+        if (!cropAssistBroken && frameIndexRef.current % PERSON_DETECT_INTERVAL === 0) {
+          const box = locatePerson(personDetector, video, now);
+          if (box) cropBoxRef.current = padBox(box, video.videoWidth, video.videoHeight);
         }
-      } else {
-        const result = landmarker.detectForVideo(video, now);
-        const raw = result.landmarks?.[0];
-        if (raw && raw.length === 33) landmarks = raw;
+        frameIndexRef.current += 1;
+
+        const crop = cropBoxRef.current;
+
+        if (!cropAssistBroken && crop && cropCtx && crop.width > 0 && crop.height > 0) {
+          // Recorta la zona de la persona y la agranda antes de buscar la
+          // pose — así un deportista pequeño y lejano (grabado desde la
+          // playa) deja de perderse en la reducción de resolución interna
+          // del modelo. Las coordenadas que devuelve están normalizadas al
+          // recorte, así que se convierten de vuelta al cuadro completo.
+          const targetMax = 768;
+          const scale = Math.max(1, targetMax / Math.max(crop.width, crop.height));
+          cropCanvas.width = Math.round(crop.width * scale);
+          cropCanvas.height = Math.round(crop.height * scale);
+          cropCtx.drawImage(
+            video,
+            crop.x,
+            crop.y,
+            crop.width,
+            crop.height,
+            0,
+            0,
+            cropCanvas.width,
+            cropCanvas.height
+          );
+          const result = landmarker.detectForVideo(cropCanvas, now);
+          const raw = result.landmarks?.[0];
+          if (raw && raw.length === 33) {
+            landmarks = remapToFullFrame(raw, crop, video.videoWidth, video.videoHeight);
+          }
+        } else {
+          const result = landmarker.detectForVideo(video, now);
+          const raw = result.landmarks?.[0];
+          if (raw && raw.length === 33) landmarks = raw;
+        }
+      } catch (err) {
+        // Un cuadro puntual puede fallar (p. ej. el canvas de recorte queda
+        // en un estado raro); no tiramos todo el análisis por eso — se
+        // desactiva el recorte/zoom para el resto del video y se sigue
+        // intentando sobre el cuadro completo, en vez de quedar "pegado".
+        console.error("Fallo detectando un cuadro, se desactiva el recorte/zoom:", err);
+        cropAssistBroken = true;
       }
 
       attemptedFramesRef.current += 1;
@@ -278,6 +305,7 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
           src={videoUrl}
           muted
           playsInline
+          crossOrigin="anonymous"
           style={{ width: "100%", display: "block" }}
         />
         <canvas

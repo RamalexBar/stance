@@ -14,6 +14,11 @@ interface MetricSummary {
   mean: number;
 }
 
+interface ChartInsight {
+  explanation: string;
+  recommendation: string;
+}
+
 interface BiomechanicsRecord {
   videoId: string;
   status: string;
@@ -22,6 +27,8 @@ interface BiomechanicsRecord {
     estimatedKneeLoadIndexAvg: number | null;
     approxTrunkOscillationsPerMinute: number | null;
     notesForUser: string[];
+    trunkInclinationInsight: ChartInsight | null;
+    balanceInsight: ChartInsight | null;
   };
 }
 
@@ -140,12 +147,15 @@ export default function BiomechanicsPage() {
             yLabel="grados desde vertical"
             lines={[{ key: "trunkInclinationDeg", label: "Tronco", color: "#17E0C3" }]}
           />
+          <ChartInsightBox insight={summary.trunkInclinationInsight} />
+
           <MetricChart
             title="Balance (adelante/atrás respecto a los tobillos)"
             series={series}
             yLabel="offset relativo"
             lines={[{ key: "balanceOffset", label: "Balance", color: "#FF6B6B" }]}
           />
+          <ChartInsightBox insight={summary.balanceInsight} />
 
           <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 16, marginTop: 24 }}>
             <p style={{ color: "var(--color-muted)", fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
@@ -157,6 +167,25 @@ export default function BiomechanicsPage() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function ChartInsightBox({ insight }: { insight: ChartInsight | null }) {
+  if (!insight) return null;
+  return (
+    <div
+      style={{
+        background: "var(--color-black-soft)",
+        borderRadius: 10,
+        padding: 14,
+        marginTop: -8,
+        marginBottom: 20,
+        borderLeft: "3px solid var(--color-turquoise)",
+      }}
+    >
+      <p style={{ color: "var(--color-muted)", fontSize: 12, marginBottom: 8 }}>{insight.explanation}</p>
+      <p style={{ color: "var(--color-white)", fontSize: 13, fontWeight: 600 }}>💡 {insight.recommendation}</p>
     </div>
   );
 }

@@ -150,6 +150,7 @@ export const POSE_ENGINE_HTML = `
         }),
       ]);
 
+      video.crossOrigin = "anonymous";
       video.src = videoUrl;
       await new Promise((resolve) => { video.onloadedmetadata = resolve; });
 
@@ -160,43 +161,51 @@ export const POSE_ENGINE_HTML = `
       statusEl.textContent = "Detectando pose…";
       await video.play();
 
+      let cropAssistBroken = false;
+
       function loop() {
         if (video.paused || video.ended) return;
         const now = performance.now();
-
-        if (frameIndex % PERSON_DETECT_INTERVAL === 0) {
-          const detection = personDetector.detectForVideo(video, now);
-          const box = detection.detections[0]?.boundingBox;
-          if (box) cropBox = padBox(box, video.videoWidth, video.videoHeight, 0.4);
-        }
-        frameIndex += 1;
-
         let landmarks;
-        if (cropBox && cropBox.width > 0 && cropBox.height > 0) {
-          const targetMax = 768;
-          const scale = Math.max(1, targetMax / Math.max(cropBox.width, cropBox.height));
-          cropCanvas.width = Math.round(cropBox.width * scale);
-          cropCanvas.height = Math.round(cropBox.height * scale);
-          cropCtx.drawImage(
-            video,
-            cropBox.x,
-            cropBox.y,
-            cropBox.width,
-            cropBox.height,
-            0,
-            0,
-            cropCanvas.width,
-            cropCanvas.height
-          );
-          const result = landmarker.detectForVideo(cropCanvas, now);
-          const raw = result.landmarks?.[0];
-          if (raw && raw.length === 33) {
-            landmarks = remapToFullFrame(raw, cropBox, video.videoWidth, video.videoHeight);
+
+        try {
+          if (!cropAssistBroken && frameIndex % PERSON_DETECT_INTERVAL === 0) {
+            const detection = personDetector.detectForVideo(video, now);
+            const box = detection.detections[0]?.boundingBox;
+            if (box) cropBox = padBox(box, video.videoWidth, video.videoHeight, 0.4);
           }
-        } else {
-          const result = landmarker.detectForVideo(video, now);
-          const raw = result.landmarks?.[0];
-          if (raw && raw.length === 33) landmarks = raw;
+          frameIndex += 1;
+
+          if (!cropAssistBroken && cropBox && cropBox.width > 0 && cropBox.height > 0) {
+            const targetMax = 768;
+            const scale = Math.max(1, targetMax / Math.max(cropBox.width, cropBox.height));
+            cropCanvas.width = Math.round(cropBox.width * scale);
+            cropCanvas.height = Math.round(cropBox.height * scale);
+            cropCtx.drawImage(
+              video,
+              cropBox.x,
+              cropBox.y,
+              cropBox.width,
+              cropBox.height,
+              0,
+              0,
+              cropCanvas.width,
+              cropCanvas.height
+            );
+            const result = landmarker.detectForVideo(cropCanvas, now);
+            const raw = result.landmarks?.[0];
+            if (raw && raw.length === 33) {
+              landmarks = remapToFullFrame(raw, cropBox, video.videoWidth, video.videoHeight);
+            }
+          } else {
+            const result = landmarker.detectForVideo(video, now);
+            const raw = result.landmarks?.[0];
+            if (raw && raw.length === 33) landmarks = raw;
+          }
+        } catch (err) {
+          // No tiramos todo el análisis por un cuadro puntual — se desactiva
+          // el recorte/zoom para el resto del video en vez de quedar pegado.
+          cropAssistBroken = true;
         }
 
         if (landmarks) {
