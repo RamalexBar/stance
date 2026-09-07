@@ -234,7 +234,7 @@ export default function SkeletonReplay({ videoUrl, poseFrames, metricsFrames }: 
         drawSkeleton(ctx!, width, height, video.currentTime);
         ctx!.font = `bold ${Math.round(height * 0.035)}px sans-serif`;
         ctx!.fillStyle = "rgba(23,224,195,0.9)";
-        ctx!.fillText("Stance", 16, height - 16);
+        ctx!.fillText("Easy Kite", 16, height - 16);
         // captureStream(0) es modo manual: cada frame hay que empujarlo
         // explícitamente, si no el video final queda vacío.
         track?.requestFrame?.();

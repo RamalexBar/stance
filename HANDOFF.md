@@ -34,7 +34,7 @@ cd mobile && npx expo start
 
 ## Contexto para retomar
 
-Proyecto Stance (antes se llamaba Foilio) — apps de kitesurf/wing foil con web (Next.js), mobile (Expo/React Native) y api (Express + Prisma + Postgres).
+Proyecto Easy Kite (antes se llamó Stance, y antes de eso Foilio) — apps de kitesurf/wing foil con web (Next.js), mobile (Expo/React Native) y api (Express + Prisma + Postgres). El repo de GitHub y las carpetas locales siguen llamándose "stance" — solo se cambió el nombre visible de la app, no esos identificadores técnicos (ver sección de riesgos).
 
 Lo último en lo que se trabajó:
 

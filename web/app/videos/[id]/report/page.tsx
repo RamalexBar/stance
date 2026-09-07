@@ -40,7 +40,7 @@ export default function ReportPage() {
         type: blob.type,
       });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Reporte Stance" });
+        await navigator.share({ files: [file], title: "Reporte Easy Kite" });
       } else {
         setMessage("Tu navegador no soporta compartir directamente; el archivo ya se descargó.");
       }

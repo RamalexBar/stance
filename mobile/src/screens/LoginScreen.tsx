@@ -39,7 +39,7 @@ export default function LoginScreen({ navigation }: RootStackScreenProps<"Login"
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Stance</Text>
+        <Text style={styles.title}>Easy Kite</Text>
         <Text style={styles.subtitle}>Inicia sesión para analizar tu técnica</Text>
 
         <TextInput

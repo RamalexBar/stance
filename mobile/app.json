@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Stance",
+    "name": "Easy Kite",
     "slug": "stance",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -13,10 +13,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.stance.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Stance necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
-        "NSMicrophoneUsageDescription": "Stance necesita el micrófono para grabar video con audio.",
-        "NSPhotoLibraryUsageDescription": "Stance necesita acceso a tu galería para importar videos de tus sesiones.",
-        "NSLocationWhenInUseUsageDescription": "Stance usa tu ubicación mientras grabas para calcular velocidad y distancia recorrida en el dashboard."
+        "NSCameraUsageDescription": "Easy Kite necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
+        "NSMicrophoneUsageDescription": "Easy Kite necesita el micrófono para grabar video con audio.",
+        "NSPhotoLibraryUsageDescription": "Easy Kite necesita acceso a tu galería para importar videos de tus sesiones.",
+        "NSLocationWhenInUseUsageDescription": "Easy Kite usa tu ubicación mientras grabas para calcular velocidad y distancia recorrida en el dashboard."
       }
     },
     "android": {
@@ -27,21 +27,21 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Stance necesita acceso a tu galería para importar videos de tus sesiones.",
-          "cameraPermission": "Stance necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
-          "microphonePermission": "Stance necesita el micrófono para grabar video con audio."
+          "photosPermission": "Easy Kite necesita acceso a tu galería para importar videos de tus sesiones.",
+          "cameraPermission": "Easy Kite necesita la cámara para grabar tu sesión de kitesurf/wing foil.",
+          "microphonePermission": "Easy Kite necesita el micrófono para grabar video con audio."
         }
       ],
       [
         "expo-av",
         {
-          "microphonePermission": "Stance necesita el micrófono para grabar video con audio."
+          "microphonePermission": "Easy Kite necesita el micrófono para grabar video con audio."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Stance usa tu ubicación mientras grabas para calcular velocidad y distancia recorrida en el dashboard."
+          "locationWhenInUsePermission": "Easy Kite usa tu ubicación mientras grabas para calcular velocidad y distancia recorrida en el dashboard."
         }
       ]
     ]

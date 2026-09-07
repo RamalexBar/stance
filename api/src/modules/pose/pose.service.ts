@@ -2,9 +2,10 @@ import { videoRepository } from "../videos/video.repository";
 import { poseRepository } from "./pose.repository";
 import { SubmitPoseAnalysisInput } from "./pose.dto";
 import { ForbiddenError, NotFoundError } from "../../shared/errors";
+import { withDbRetry } from "../../shared/dbRetry";
 
 async function assertOwnership(userId: string, videoId: string) {
-  const video = await videoRepository.findById(videoId);
+  const video = await withDbRetry(() => videoRepository.findById(videoId));
   if (!video) throw new NotFoundError("Video no encontrado");
   if (video.userId !== userId) throw new ForbiddenError();
   return video;
@@ -28,14 +29,16 @@ export const poseService = {
         ? confidences.reduce((a, b) => a + b, 0) / confidences.length
         : undefined);
 
-    const analysis = await poseRepository.upsertCompleted({
-      videoId,
-      fps: input.fps,
-      frameCount: input.frames.length,
-      avgConfidence,
-      framesJson: input.frames,
-      engine: input.engine,
-    });
+    const analysis = await withDbRetry(() =>
+      poseRepository.upsertCompleted({
+        videoId,
+        fps: input.fps,
+        frameCount: input.frames.length,
+        avgConfidence,
+        framesJson: input.frames,
+        engine: input.engine,
+      })
+    );
 
     return {
       videoId,
@@ -47,7 +50,7 @@ export const poseService = {
 
   async getByVideoId(userId: string, videoId: string) {
     await assertOwnership(userId, videoId);
-    const analysis = await poseRepository.findByVideoId(videoId);
+    const analysis = await withDbRetry(() => poseRepository.findByVideoId(videoId));
     if (!analysis) throw new NotFoundError("Este video todavía no tiene análisis de pose");
     return analysis;
   },

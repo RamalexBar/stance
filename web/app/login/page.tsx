@@ -45,7 +45,7 @@ export default function LoginPage() {
   return (
     <div className="auth-shell">
       <div className="auth-card">
-        <h1>Stance</h1>
+        <h1>Easy Kite</h1>
         <p className="subtitle">Inicia sesión para analizar tu técnica</p>
 
         <form onSubmit={handleEmailLogin}>

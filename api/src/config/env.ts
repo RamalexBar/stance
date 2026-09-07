@@ -34,7 +34,7 @@ export const env = {
     port: Number(process.env.SMTP_PORT ?? 587),
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
-    from: process.env.SMTP_FROM ?? "Stance <no-reply@stance.app>",
+    from: process.env.SMTP_FROM ?? "Easy Kite <no-reply@easykite.app>",
   },
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,

@@ -1,4 +1,4 @@
-# Stance
+# Easy Kite
 
 App de coaching para deportistas de kitesurf y wing foil: sube un video de tu
 sesión, se analiza pose/biomecánica/movimiento, se detectan errores técnicos,

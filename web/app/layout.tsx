@@ -2,7 +2,7 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 
 export const metadata = {
-  title: "Stance",
+  title: "Easy Kite",
   description: "Análisis biomecánico para Kitesurf y Wing Foil",
 };
 
