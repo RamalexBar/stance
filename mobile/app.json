@@ -21,7 +21,14 @@
     },
     "android": {
       "package": "com.stance.app",
-      "permissions": ["CAMERA", "RECORD_AUDIO", "READ_MEDIA_VIDEO", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
     },
     "plugins": [
       [
@@ -44,6 +51,12 @@
           "locationWhenInUsePermission": "Easy Kite usa tu ubicación mientras grabas para calcular velocidad y distancia recorrida en el dashboard."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "937382ef-5cd7-435b-ae12-a3aee9748bc7"
+      }
+    },
+    "owner": "tatidpipe05"
   }
 }
