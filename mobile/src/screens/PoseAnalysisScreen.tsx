@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
+import { useKeepAwake } from "expo-keep-awake";
 import { apiGet, apiPost } from "../api/client";
 import { POSE_ENGINE_HTML } from "../pose/poseEngineHtml";
 import { colors } from "../theme/colors";
@@ -15,6 +16,11 @@ interface VideoDetail {
 type ScreenState = "loading" | "ready" | "saving" | "done" | "error";
 
 export default function PoseAnalysisScreen({ route }: RootStackScreenProps<"PoseAnalysis">) {
+  // El análisis puede tardar varios minutos; sin esto, el bloqueo automático
+  // de pantalla del teléfono corta el WebView a mitad de proceso y hay que
+  // empezar de nuevo.
+  useKeepAwake();
+
   const { videoId } = route.params;
   const [video, setVideo] = useState<VideoDetail | null>(null);
   const [state, setState] = useState<ScreenState>("loading");

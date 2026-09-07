@@ -44,8 +44,9 @@ export const POSE_ENGINE_HTML = `
     const CONFIDENCE_THRESHOLD = 0.5;
     // Cada cuántos cuadros se vuelve a ubicar a la persona con el detector
     // de objetos para actualizar la zona de recorte (ver PoseAnalyzer.tsx
-    // en web — misma lógica).
-    const PERSON_DETECT_INTERVAL = 10;
+    // en web — misma lógica). 24 en vez de 10: en el WebView de mobile un
+    // detector pesado corriendo tan seguido trababa el video.
+    const PERSON_DETECT_INTERVAL = 24;
     const CONNECTIONS = [
       [11,12],[11,13],[13,15],[12,14],[14,16],
       [11,23],[12,24],[23,24],
@@ -66,6 +67,10 @@ export const POSE_ENGINE_HTML = `
 
     function post(type, payload) {
       window.ReactNativeWebView?.postMessage(JSON.stringify({ type, payload }));
+    }
+
+    function isCropWorthwhile(box, videoHeight) {
+      return box.height / videoHeight < 0.5;
     }
 
     function padBox(box, videoWidth, videoHeight, paddingRatio) {
@@ -139,8 +144,11 @@ export const POSE_ENGINE_HTML = `
         }),
         ObjectDetector.createFromOptions(vision, {
           baseOptions: {
+            // "lite0" (320x320) en vez de "lite2" (448x448): mucho más
+            // liviano para el WebView de mobile — un detector que tranca el
+            // video en cada cuadro no le sirve a nadie.
             modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/latest/efficientdet_lite2.tflite",
+              "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/latest/efficientdet_lite0.tflite",
             delegate: "GPU",
           },
           runningMode: "VIDEO",
@@ -172,7 +180,10 @@ export const POSE_ENGINE_HTML = `
           if (!cropAssistBroken && frameIndex % PERSON_DETECT_INTERVAL === 0) {
             const detection = personDetector.detectForVideo(video, now);
             const box = detection.detections[0]?.boundingBox;
-            if (box) cropBox = padBox(box, video.videoWidth, video.videoHeight, 0.4);
+            cropBox =
+              box && isCropWorthwhile(box, video.videoHeight)
+                ? padBox(box, video.videoWidth, video.videoHeight, 0.4)
+                : null;
           }
           frameIndex += 1;
 

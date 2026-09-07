@@ -7,14 +7,8 @@ import { useRequireAuth } from "../../../../hooks/useRequireAuth";
 import { apiGet, apiPost } from "../../../../lib/api";
 import MovementTimeline from "../../../../components/MovementTimeline";
 
-interface NotDetected {
-  maneuver: string;
-  reason: string;
-}
-
 interface MovementResult {
   segments: any[];
-  notDetectedYet: NotDetected[];
 }
 
 function JumpsSummary({ segments }: { segments: any[] }) {
@@ -30,7 +24,7 @@ function JumpsSummary({ segments }: { segments: any[] }) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, rgba(23,224,195,0.14), rgba(30,95,255,0.06))",
+        background: "linear-gradient(135deg, rgba(23,224,195,0.14), rgba(255,107,74,0.06))",
         border: "1px solid var(--color-turquoise)",
         borderRadius: 12,
         padding: 18,
@@ -107,19 +101,6 @@ export default function MovementPage() {
           <JumpsSummary segments={data.segments} />
 
           <MovementTimeline segments={data.segments} />
-
-          <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 16, marginTop: 28 }}>
-            <p style={{ color: "var(--color-muted)", fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
-              Maniobras que esta fase todavía NO detecta (y por qué):
-            </p>
-            <ul style={{ color: "var(--color-muted)", fontSize: 12, paddingLeft: 18 }}>
-              {data.notDetectedYet.map((item) => (
-                <li key={item.maneuver} style={{ marginBottom: 4 }}>
-                  <strong>{item.maneuver}:</strong> {item.reason}
-                </li>
-              ))}
-            </ul>
-          </div>
         </>
       )}
     </div>

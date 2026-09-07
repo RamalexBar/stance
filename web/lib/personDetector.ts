@@ -21,8 +21,12 @@ export function getPersonDetector(): Promise<ObjectDetector> {
       );
       return ObjectDetector.createFromOptions(vision, {
         baseOptions: {
+          // "lite0" (320x320) en vez de "lite2" (448x448): bastante más
+          // rápido en dispositivos débiles (mobile) — se pierde algo de
+          // rango en personas extremadamente pequeñas, pero un detector que
+          // hace tartamudear el video en cada cuadro no le sirve a nadie.
           modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/latest/efficientdet_lite2.tflite",
+            "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/latest/efficientdet_lite0.tflite",
           delegate: "GPU",
         },
         runningMode: "VIDEO",
@@ -56,6 +60,15 @@ export function locatePerson(
   const box = result.detections[0]?.boundingBox;
   if (!box) return null;
   return { x: box.originX, y: box.originY, width: box.width, height: box.height };
+}
+
+/**
+ * Si la persona ya ocupa buena parte del cuadro (video grabado de cerca), el
+ * recorte/zoom no aporta nada — solo agrega un dibujo de canvas por cuadro
+ * de puro costo. Se activa solo cuando de verdad puede rescatar la detección.
+ */
+export function isCropWorthwhile(box: PixelBox, videoHeight: number): boolean {
+  return box.height / videoHeight < 0.5;
 }
 
 /**

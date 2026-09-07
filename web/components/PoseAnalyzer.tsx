@@ -6,7 +6,7 @@ import {
   POSE_CONNECTIONS,
   CONFIDENCE_THRESHOLD,
 } from "../lib/poseLandmarker";
-import { getPersonDetector, locatePerson, padBox, PixelBox } from "../lib/personDetector";
+import { getPersonDetector, locatePerson, padBox, isCropWorthwhile, PixelBox } from "../lib/personDetector";
 import { apiPost } from "../lib/api";
 
 interface Landmark {
@@ -18,9 +18,10 @@ interface Landmark {
 
 // Cada cuántos cuadros se vuelve a ubicar a la persona con el detector de
 // objetos (más pesado que el de pose) para actualizar la zona de recorte.
-// No hace falta en cada cuadro: el deportista no se desplaza tanto en
-// 200-400ms como para que el recorte anterior deje de servir.
-const PERSON_DETECT_INTERVAL = 10;
+// Antes en 10 hacía tartamudear el video en equipos débiles; en 24 corre
+// aprox. 1-2 veces por segundo, suficiente para seguir el movimiento sin
+// saturar el hilo principal.
+const PERSON_DETECT_INTERVAL = 24;
 
 function remapToFullFrame(landmarks: Landmark[], crop: PixelBox, videoWidth: number, videoHeight: number): Landmark[] {
   return landmarks.map((l) => ({
@@ -165,7 +166,14 @@ export default function PoseAnalyzer({ videoId, videoUrl }: Props) {
         // debería tirar todo el seguimiento.
         if (!cropAssistBroken && frameIndexRef.current % PERSON_DETECT_INTERVAL === 0) {
           const box = locatePerson(personDetector, video, now);
-          if (box) cropBoxRef.current = padBox(box, video.videoWidth, video.videoHeight);
+          // Si la persona ya se ve grande (video de cerca), el recorte no
+          // aporta nada y solo cuesta un dibujo de canvas extra por cuadro
+          // — se deja en null para que el resto del loop use el cuadro
+          // completo directamente (la ruta más barata).
+          cropBoxRef.current =
+            box && isCropWorthwhile(box, video.videoHeight)
+              ? padBox(box, video.videoWidth, video.videoHeight)
+              : null;
         }
         frameIndexRef.current += 1;
 

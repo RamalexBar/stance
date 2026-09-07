@@ -27,15 +27,9 @@ interface Segment {
   confidence: number;
 }
 
-interface NotDetected {
-  maneuver: string;
-  reason: string;
-}
-
 export default function MovementScreen({ route, navigation }: RootStackScreenProps<"Movement">) {
   const { videoId } = route.params;
   const [segments, setSegments] = useState<Segment[]>([]);
-  const [notDetected, setNotDetected] = useState<NotDetected[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
@@ -45,12 +39,8 @@ export default function MovementScreen({ route, navigation }: RootStackScreenPro
   async function load() {
     try {
       setState("loading");
-      const result = await apiPost<{ segments: Segment[]; notDetectedYet: NotDetected[] }>(
-        `/api/v1/videos/${videoId}/movement`,
-        {}
-      );
+      const result = await apiPost<{ segments: Segment[] }>(`/api/v1/videos/${videoId}/movement`, {});
       setSegments(result.segments);
-      setNotDetected(result.notDetectedYet);
       setState("ready");
     } catch {
       setState("error");
@@ -99,15 +89,6 @@ export default function MovementScreen({ route, navigation }: RootStackScreenPro
       {segments.filter((s) => s.type !== "NAVEGACION").length === 0 && (
         <Text style={styles.helper}>No se detectaron saltos ni cambios de dirección marcados.</Text>
       )}
-
-      <View style={styles.notesBox}>
-        <Text style={styles.notesTitle}>Maniobras que esta fase todavía no detecta:</Text>
-        {notDetected.map((item) => (
-          <Text key={item.maneuver} style={styles.note}>
-            • {item.maneuver}: {item.reason}
-          </Text>
-        ))}
-      </View>
     </ScrollView>
   );
 }
@@ -127,9 +108,6 @@ const styles = StyleSheet.create({
   segmentType: { color: colors.white, fontWeight: "700", fontSize: 14 },
   segmentMeta: { color: colors.muted, fontSize: 12, marginTop: 2 },
   helper: { color: colors.muted, fontSize: 13, marginBottom: 16 },
-  notesBox: { backgroundColor: colors.blackSoft, borderRadius: 10, padding: 14, marginTop: 16, marginBottom: 32 },
-  notesTitle: { color: colors.muted, fontSize: 12, fontWeight: "600", marginBottom: 6 },
-  note: { color: colors.muted, fontSize: 12, marginBottom: 4 },
   error: { color: colors.danger, fontSize: 14, textAlign: "center", marginBottom: 16 },
   button: { backgroundColor: colors.turquoise, borderRadius: 10, padding: 14, alignItems: "center" },
   buttonText: { color: colors.black, fontWeight: "700" },
