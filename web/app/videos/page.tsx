@@ -266,7 +266,7 @@ export default function VideosPage() {
                     label="Biomecánica"
                     enabled={!!v.hasPoseAnalysis}
                     disabledReason="Primero corre 'Analizar' en este video."
-                    color="var(--color-blue)"
+                    color="var(--color-coral)"
                   />
                   <StepLink
                     href={`/videos/${v.id}/movement`}

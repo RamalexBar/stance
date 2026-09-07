@@ -220,8 +220,8 @@ export default function DashboardPage() {
       {data.recordSpeedKmh > 0 && (
         <div
           style={{
-            background: "linear-gradient(135deg, rgba(30,95,255,0.14), rgba(23,224,195,0.06))",
-            border: "1px solid var(--color-blue)",
+            background: "linear-gradient(135deg, rgba(255,107,74,0.14), rgba(23,224,195,0.06))",
+            border: "1px solid var(--color-coral)",
             borderRadius: 12,
             padding: 18,
             marginBottom: 28,
@@ -233,7 +233,7 @@ export default function DashboardPage() {
           }}
         >
           <div>
-            <p style={{ color: "var(--color-blue)", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>
+            <p style={{ color: "var(--color-coral)", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>
               🌊 VELOCIDAD Y DISTANCIA
             </p>
             <p style={{ color: "var(--color-muted)", fontSize: 13 }}>
@@ -271,7 +271,7 @@ export default function DashboardPage() {
           title="Hangtime en el tiempo"
           series={hangtimeSeries}
           yLabel="segundos"
-          lines={[{ key: "hangtime", label: "Hangtime", color: "#1E5FFF" }]}
+          lines={[{ key: "hangtime", label: "Hangtime", color: "#FF6B4A" }]}
         />
       )}
 

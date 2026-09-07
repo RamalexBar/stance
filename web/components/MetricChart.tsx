@@ -95,8 +95,8 @@ export default function MetricChart({
         <VictoryAxis
           label={xLabel}
           style={{
-            axisLabel: { fill: "#7C8A96", padding: 28, fontSize: 10 },
-            tickLabels: { fill: "#7C8A96", fontSize: 10 },
+            axisLabel: { fill: "#8FA8A3", padding: 28, fontSize: 10 },
+            tickLabels: { fill: "#8FA8A3", fontSize: 10 },
             axis: { stroke: "rgba(255,255,255,0.15)" },
             grid: { stroke: "rgba(255,255,255,0.05)" },
           }}
@@ -105,8 +105,8 @@ export default function MetricChart({
           dependentAxis
           label={yLabel}
           style={{
-            axisLabel: { fill: "#7C8A96", padding: 38, fontSize: 10 },
-            tickLabels: { fill: "#7C8A96", fontSize: 10 },
+            axisLabel: { fill: "#8FA8A3", padding: 38, fontSize: 10 },
+            tickLabels: { fill: "#8FA8A3", fontSize: 10 },
             axis: { stroke: "rgba(255,255,255,0.15)" },
             grid: { stroke: "rgba(255,255,255,0.05)" },
           }}
@@ -127,7 +127,7 @@ export default function MetricChart({
             y={0}
             orientation="horizontal"
             gutter={16}
-            style={{ labels: { fill: "#F4F7F9", fontSize: 10 } }}
+            style={{ labels: { fill: "#ECF3EF", fontSize: 10 } }}
             data={lines.map((l) => ({ name: l.label, symbol: { fill: l.color } }))}
           />
         )}

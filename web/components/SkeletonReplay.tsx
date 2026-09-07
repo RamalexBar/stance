@@ -72,7 +72,7 @@ const POINT_CATEGORY: Record<number, keyof SegmentEvaluation | undefined> = {
   32: "knees",
 };
 
-const NEUTRAL_COLOR = "#F4F7F9";
+const NEUTRAL_COLOR = "#ECF3EF";
 
 function withAlpha(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);

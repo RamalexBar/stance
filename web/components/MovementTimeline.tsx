@@ -11,7 +11,7 @@ interface Segment {
 const COLORS: Record<string, string> = {
   NAVEGACION: "#2a3540",
   SALTO: "#17E0C3",
-  ATERRIZAJE: "#1E5FFF",
+  ATERRIZAJE: "#FF6B4A",
   RECEPCION: "#8B5CF6",
   CAMBIO_DIRECCION: "#FFB020",
 };

@@ -1,10 +1,13 @@
 :root {
-  --color-black: #0a0e12;
-  --color-black-soft: #10161c;
-  --color-blue: #1e5fff;
+  /* "Marea" — mar de noche, turquesa de agua, coral de atardecer. Antes era
+     una paleta de dashboard genérico (negro neutro + azul eléctrico) sin
+     relación con kite/wing foil; estos tonos vienen de ahí a propósito. */
+  --color-black: #0b1a1e;
+  --color-black-soft: #122a30;
+  --color-coral: #ff6b4a;
   --color-turquoise: #17e0c3;
-  --color-white: #f4f7f9;
-  --color-muted: #7c8a96;
+  --color-white: #ecf3ef;
+  --color-muted: #8fa8a3;
   --radius: 14px;
 }
 
@@ -16,7 +19,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--color-black);
+  min-height: 100%;
+  background: radial-gradient(900px 500px at 88% -8%, rgba(255, 107, 74, 0.1), transparent 60%),
+    radial-gradient(1100px 650px at 8% 0%, rgba(23, 224, 195, 0.1), transparent 60%), var(--color-black);
   color: var(--color-white);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -35,19 +40,31 @@ a {
 }
 
 .auth-card {
+  position: relative;
   width: 100%;
   max-width: 420px;
   background: var(--color-black-soft);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius);
   padding: 32px;
+  overflow: hidden;
   animation: fadeIn 0.35s ease-out;
+}
+
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-turquoise), var(--color-coral));
 }
 
 .auth-card h1 {
   font-size: 1.5rem;
   margin: 0 0 4px;
-  background: linear-gradient(90deg, var(--color-turquoise), var(--color-blue));
+  background: linear-gradient(90deg, var(--color-turquoise), var(--color-coral));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -101,16 +118,17 @@ a {
   padding: 12px 14px;
   border-radius: 10px;
   border: none;
-  background: var(--color-turquoise);
+  background: linear-gradient(135deg, var(--color-turquoise), var(--color-coral) 130%);
   color: var(--color-black);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
+  box-shadow: 0 10px 28px -10px rgba(23, 224, 195, 0.45);
 }
 
 .btn-primary:disabled {

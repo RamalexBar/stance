@@ -160,7 +160,7 @@ export default function BiomechanicsPage() {
             yLabel="grados"
             lines={[
               { key: "kneeAngleLeft", label: "Izquierda", color: "#17E0C3" },
-              { key: "kneeAngleRight", label: "Derecha", color: "#1E5FFF" },
+              { key: "kneeAngleRight", label: "Derecha", color: "#FF6B4A" },
             ]}
             zones={KNEE_ZONES}
           />
