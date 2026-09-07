@@ -1,6 +1,7 @@
 import "react-native-url-polyfill/auto";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import * as FileSystem from "expo-file-system";
+// Ver nota en src/api/client.ts — mismo motivo para usar el subpath legacy.
+import * as FileSystem from "expo-file-system/legacy";
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;

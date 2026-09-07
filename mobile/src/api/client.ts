@@ -1,4 +1,8 @@
-import * as FileSystem from "expo-file-system";
+// SDK 54 reemplazó la API vieja de expo-file-system (documentDirectory,
+// downloadAsync) por una basada en clases File/Directory. El subpath
+// "legacy" mantiene la API vieja disponible — se usa acá para no reescribir
+// esta lógica ahora mismo, con menos riesgo en la migración de SDK.
+import * as FileSystem from "expo-file-system/legacy";
 import { firebaseAuthClient } from "../firebase/firebaseConfig";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
