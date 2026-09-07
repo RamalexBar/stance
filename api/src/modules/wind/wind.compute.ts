@@ -177,9 +177,7 @@ export function recommendEquipment(params: {
   windSpeedKmh: number;
 }): EquipmentRecommendation {
   const { discipline, weightKg, level, windSpeedKmh } = params;
-  const notes: string[] = [
-    "Estimación aproximada a partir de peso, nivel y viento actual — ajusta según las tablas de tu marca de equipo y tu sensación en el agua.",
-  ];
+  const notes: string[] = [];
 
   if (!weightKg) {
     notes.push("Agrega tu peso en el perfil para obtener un rango de tamaño recomendado.");

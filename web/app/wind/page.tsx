@@ -284,8 +284,12 @@ export default function WindPage() {
           )}
 
           <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 16, marginTop: 8 }}>
-            <p style={{ color: "var(--color-white)", fontWeight: 600, marginBottom: 8 }}>
+            <p style={{ color: "var(--color-white)", fontWeight: 600, marginBottom: 2 }}>
               Equipo recomendado — {data.recommendation.discipline}
+            </p>
+            <p style={{ color: "var(--color-muted)", fontSize: 11, marginBottom: 8 }}>
+              Estimación aproximada a partir de peso, nivel y viento actual — ajusta según las tablas de tu marca de
+              equipo y tu sensación en el agua.
             </p>
             {data.recommendation.kiteSizeM2 && (
               <p style={{ color: "var(--color-turquoise)", fontSize: 15, marginBottom: 6 }}>
@@ -302,13 +306,15 @@ export default function WindPage() {
                 Tabla: {data.recommendation.boardVolumeLiters.min}–{data.recommendation.boardVolumeLiters.max} L
               </p>
             )}
-            <ul style={{ color: "var(--color-muted)", fontSize: 12, paddingLeft: 18, marginTop: 8 }}>
-              {data.recommendation.notes.map((note, i) => (
-                <li key={i} style={{ marginBottom: 4 }}>
-                  {note}
-                </li>
-              ))}
-            </ul>
+            {data.recommendation.notes.length > 0 && (
+              <ul style={{ color: "var(--color-muted)", fontSize: 12, paddingLeft: 18, marginTop: 8 }}>
+                {data.recommendation.notes.map((note, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </>
       )}

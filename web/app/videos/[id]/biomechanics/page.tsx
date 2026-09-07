@@ -41,6 +41,28 @@ interface PoseAnalysisRecord {
   framesJson: { tSeconds: number; landmarks: { x: number; y: number; z?: number; visibility?: number }[] }[];
 }
 
+// Mismos umbrales que web/lib/postureEvaluator.ts (y api/.../healthyZones.ts) —
+// no se inventan números nuevos, se reusa la única fuente de verdad para que
+// el color de fondo del gráfico coincida con lo que reporta Errores.
+const SEGMENT_COLOR = { OK: "#2ED67A", LEVE: "#FFB020", MODERADO: "#FF8A3D", ALTO: "#FF6B6B" };
+
+const KNEE_ZONES = [
+  { from: 90, to: 165, color: SEGMENT_COLOR.OK },
+  { from: 165, to: 170, color: SEGMENT_COLOR.LEVE },
+  { from: 170, to: 175, color: SEGMENT_COLOR.MODERADO },
+  { from: 175, to: 190, color: SEGMENT_COLOR.ALTO },
+];
+
+const BALANCE_ZONES = [
+  { from: -0.35, to: 0.35, color: SEGMENT_COLOR.OK },
+  { from: 0.35, to: 0.5, color: SEGMENT_COLOR.LEVE },
+  { from: -0.5, to: -0.35, color: SEGMENT_COLOR.LEVE },
+  { from: 0.5, to: 0.65, color: SEGMENT_COLOR.MODERADO },
+  { from: -0.65, to: -0.5, color: SEGMENT_COLOR.MODERADO },
+  { from: 0.65, to: 1.2, color: SEGMENT_COLOR.ALTO },
+  { from: -1.2, to: -0.65, color: SEGMENT_COLOR.ALTO },
+];
+
 function fmt(n: number | undefined | null, decimals = 1) {
   if (n === undefined || n === null || Number.isNaN(n)) return "—";
   return n.toFixed(decimals);
@@ -140,6 +162,7 @@ export default function BiomechanicsPage() {
               { key: "kneeAngleLeft", label: "Izquierda", color: "#17E0C3" },
               { key: "kneeAngleRight", label: "Derecha", color: "#1E5FFF" },
             ]}
+            zones={KNEE_ZONES}
           />
           <MetricChart
             title="Inclinación del tronco"
@@ -154,6 +177,7 @@ export default function BiomechanicsPage() {
             series={series}
             yLabel="offset relativo"
             lines={[{ key: "balanceOffset", label: "Balance", color: "#FF6B6B" }]}
+            zones={BALANCE_ZONES}
           />
           <ChartInsightBox insight={summary.balanceInsight} />
 
