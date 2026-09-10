@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { apiGet, apiPost } from "../api/client";
 import { colors } from "../theme/colors";
 import type { RootStackScreenProps } from "../navigation/types";
+import StatTile from "../components/StatTile";
+import SessionTimeline from "../components/SessionTimeline";
 
 interface MetricSummary {
   min: number;
@@ -11,15 +13,44 @@ interface MetricSummary {
 }
 
 interface BiomechanicsRecord {
+  seriesJson: { tSeconds: number; [key: string]: number }[];
   summaryJson: Record<string, MetricSummary> & {
     estimatedKneeLoadIndexAvg: number | null;
     approxTrunkOscillationsPerMinute: number | null;
   };
 }
 
+// Mismos umbrales que mobile/src/lib/postureEvaluator.ts, web/lib/postureEvaluator.ts
+// y api/.../healthyZones.ts — no se inventan números nuevos, se reusa la
+// única fuente de verdad.
+const SEGMENT_COLOR = { OK: "#2ED67A", LEVE: "#FFB020", MODERADO: "#FF8A3D", ALTO: "#FF6B6B" };
+
+const KNEE_ZONES = [
+  { from: 90, to: 165, color: SEGMENT_COLOR.OK },
+  { from: 165, to: 170, color: SEGMENT_COLOR.LEVE },
+  { from: 170, to: 175, color: SEGMENT_COLOR.MODERADO },
+  { from: 175, to: 190, color: SEGMENT_COLOR.ALTO },
+];
+
+const BALANCE_ZONES = [
+  { from: -0.35, to: 0.35, color: SEGMENT_COLOR.OK },
+  { from: 0.35, to: 0.5, color: SEGMENT_COLOR.LEVE },
+  { from: -0.5, to: -0.35, color: SEGMENT_COLOR.LEVE },
+  { from: 0.5, to: 0.65, color: SEGMENT_COLOR.MODERADO },
+  { from: -0.65, to: -0.5, color: SEGMENT_COLOR.MODERADO },
+  { from: 0.65, to: 1.2, color: SEGMENT_COLOR.ALTO },
+  { from: -1.2, to: -0.65, color: SEGMENT_COLOR.ALTO },
+];
+
 function fmt(n: number | undefined | null, decimals = 1) {
   if (n === undefined || n === null || Number.isNaN(n)) return "—";
   return n.toFixed(decimals);
+}
+
+function zoneColorFor(value: number | undefined | null, zones: { from: number; to: number; color: string }[], fallback: string) {
+  if (value === undefined || value === null || Number.isNaN(value)) return fallback;
+  const match = zones.find((z) => value >= z.from && value < z.to);
+  return match ? match.color : fallback;
 }
 
 export default function BiomechanicsScreen({ route, navigation }: RootStackScreenProps<"Biomechanics">) {
@@ -68,15 +99,50 @@ export default function BiomechanicsScreen({ route, navigation }: RootStackScree
   }
 
   const s = data!.summaryJson;
+  const series = data!.seriesJson ?? [];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
       <Text style={styles.title}>Biomecánica</Text>
       <Text style={styles.subtitle}>Resumen de esta sesión</Text>
 
-      <Card label="Rodilla izq / der (promedio)" value={`${fmt(s.kneeAngleLeft?.mean)}° / ${fmt(s.kneeAngleRight?.mean)}°`} />
+      <View style={styles.tileGrid}>
+        <StatTile
+          label="Rodilla izquierda"
+          value={s.kneeAngleLeft?.mean}
+          unit="°"
+          color={zoneColorFor(s.kneeAngleLeft?.mean, KNEE_ZONES, SEGMENT_COLOR.OK)}
+          sparklineValues={series.map((f) => f.kneeAngleLeft)}
+        />
+        <StatTile
+          label="Rodilla derecha"
+          value={s.kneeAngleRight?.mean}
+          unit="°"
+          color={zoneColorFor(s.kneeAngleRight?.mean, KNEE_ZONES, SEGMENT_COLOR.OK)}
+          sparklineValues={series.map((f) => f.kneeAngleRight)}
+        />
+        <StatTile
+          label="Inclinación de tronco"
+          value={s.trunkInclinationDeg?.mean}
+          unit="°"
+          color={colors.turquoise}
+          sparklineValues={series.map((f) => f.trunkInclinationDeg)}
+        />
+        <StatTile
+          label="Balance"
+          value={s.balanceOffset?.mean}
+          unit=""
+          decimals={2}
+          color={zoneColorFor(s.balanceOffset?.mean, BALANCE_ZONES, SEGMENT_COLOR.OK)}
+          sparklineValues={series.map((f) => f.balanceOffset)}
+        />
+      </View>
+
+      {series.length > 1 && (
+        <SessionTimeline frames={series} segmentKey="knees" title="Línea de tiempo de la sesión — severidad de rodillas" />
+      )}
+
       <Card label="Cadera izq / der (promedio)" value={`${fmt(s.hipAngleLeft?.mean)}° / ${fmt(s.hipAngleRight?.mean)}°`} />
-      <Card label="Inclinación de tronco" value={`${fmt(s.trunkInclinationDeg?.mean)}°`} />
       <Card label="Simetría (menor = mejor)" value={`${fmt(s.symmetryDelta?.mean)}°`} />
       <Card
         label="Índice de carga de rodilla (estimado)"
@@ -88,10 +154,10 @@ export default function BiomechanicsScreen({ route, navigation }: RootStackScree
       />
 
       <Text style={styles.helper}>
-        Para ver la evolución en el tiempo con gráficos, y la repetición con
-        el avatar coloreado (verde = bien, ámbar/naranja/rojo = error leve,
-        moderado o alto), usa la versión web — esta pantalla muestra el
-        resumen para consulta rápida en el teléfono.
+        El punto de color y el número de cada tarjeta usan la misma escala
+        que la pantalla de Errores (verde = bien, ámbar/naranja/rojo = error
+        leve, moderado o alto). Para el gráfico de detalle con la curva
+        completa segundo a segundo, usa la versión web.
       </Text>
     </ScrollView>
   );
@@ -111,6 +177,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, backgroundColor: colors.black, justifyContent: "center" },
   title: { color: colors.turquoise, fontSize: 24, fontWeight: "700" },
   subtitle: { color: colors.muted, fontSize: 13, marginBottom: 16 },
+  tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
   card: {
     backgroundColor: colors.blackSoft,
     borderRadius: 10,
