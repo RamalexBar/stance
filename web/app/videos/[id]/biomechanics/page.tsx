@@ -29,7 +29,6 @@ interface BiomechanicsRecord {
   summaryJson: Record<string, MetricSummary> & {
     estimatedKneeLoadIndexAvg: number | null;
     approxTrunkOscillationsPerMinute: number | null;
-    notesForUser: string[];
     trunkInclinationInsight: ChartInsight | null;
     balanceInsight: ChartInsight | null;
   };
@@ -265,14 +264,6 @@ export default function BiomechanicsPage() {
             </>
           )}
 
-          <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 16, marginTop: 24 }}>
-            <p style={{ color: "var(--color-muted)", fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
-              Notas importantes sobre estos números:
-            </p>
-            <ul style={{ color: "var(--color-muted)", fontSize: 12, paddingLeft: 18 }}>
-              {summary.notesForUser?.map((note, i) => <li key={i} style={{ marginBottom: 4 }}>{note}</li>)}
-            </ul>
-          </div>
         </>
       )}
     </div>

@@ -14,7 +14,6 @@ interface BiomechanicsRecord {
   summaryJson: Record<string, MetricSummary> & {
     estimatedKneeLoadIndexAvg: number | null;
     approxTrunkOscillationsPerMinute: number | null;
-    notesForUser: string[];
   };
 }
 
@@ -88,13 +87,6 @@ export default function BiomechanicsScreen({ route, navigation }: RootStackScree
         value={s.approxTrunkOscillationsPerMinute != null ? `${fmt(s.approxTrunkOscillationsPerMinute, 0)} /min` : "—"}
       />
 
-      <View style={styles.notesBox}>
-        <Text style={styles.notesTitle}>Notas importantes sobre estos números:</Text>
-        {s.notesForUser?.map((note, i) => (
-          <Text key={i} style={styles.note}>• {note}</Text>
-        ))}
-      </View>
-
       <Text style={styles.helper}>
         Para ver la evolución en el tiempo con gráficos, y la repetición con
         el avatar coloreado (verde = bien, ámbar/naranja/rojo = error leve,
@@ -127,9 +119,6 @@ const styles = StyleSheet.create({
   },
   cardLabel: { color: colors.muted, fontSize: 11, marginBottom: 4 },
   cardValue: { color: colors.white, fontSize: 18, fontWeight: "700" },
-  notesBox: { backgroundColor: colors.blackSoft, borderRadius: 10, padding: 14, marginTop: 8 },
-  notesTitle: { color: colors.muted, fontSize: 12, fontWeight: "600", marginBottom: 6 },
-  note: { color: colors.muted, fontSize: 12, marginBottom: 4 },
   helper: { color: colors.muted, fontSize: 11, marginTop: 16, marginBottom: 32, textAlign: "center" },
   error: { color: colors.danger, fontSize: 14, textAlign: "center", marginBottom: 16 },
   button: {

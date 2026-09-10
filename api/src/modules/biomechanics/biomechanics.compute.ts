@@ -58,7 +58,6 @@ export interface BiomechanicsResult {
   summary: Record<string, MetricSummary>;
   estimatedKneeLoadIndexAvg: number | null;
   approxTrunkOscillationsPerMinute: number | null;
-  notesForUser: string[];
   trunkInclinationInsight: ChartInsight | null;
   balanceInsight: ChartInsight | null;
 }
@@ -308,39 +307,11 @@ export const biomechanicsCompute = {
 
     const approxTrunkOscillationsPerMinute = estimateOscillationsPerMinute(series);
 
-    // Las dos primeras y la última son límites estructurales de la
-    // plataforma (2D de una cámara, sin detección de equipo, sin sensores) —
-    // aplican siempre, a cualquier video. Las del medio solo se muestran
-    // cuando el dato al que se refieren realmente está presente/es relevante
-    // en ESTE video, con el número real en vez de una advertencia genérica.
-    const notesForUser: string[] = [
-      "Centro de masa, carga articular y rotación de tronco son ESTIMACIONES a partir de una sola cámara 2D, no mediciones exactas.",
-      "La altura de la barra/agarre de vela se infiere de la posición de las manos, no de una detección real del equipo (todavía no hay detección de objetos en la plataforma).",
-    ];
-    if (summary.symmetryDelta && summary.symmetryDelta.mean > 8) {
-      notesForUser.push(
-        `Tu diferencia izquierda/derecha promedio fue de ${summary.symmetryDelta.mean.toFixed(
-          1
-        )}° — puede ser asimetría real, pero con cámara lateral también puede deberse a oclusión del lado más lejano a la cámara.`
-      );
-    }
-    if (approxTrunkOscillationsPerMinute !== null) {
-      notesForUser.push(
-        `Esta maniobra (navegación en línea recta) no es cíclica por naturaleza: la cadencia mostrada (${approxTrunkOscillationsPerMinute.toFixed(
-          0
-        )}/min) es una referencia aproximada, no un conteo real de repeticiones.`
-      );
-    }
-    notesForUser.push(
-      "Tiempo de reacción, potencia estimada y fuerzas aplicadas no se calculan en esta fase: requieren un evento de inicio claro y/o datos de sensores que todavía no existen en la plataforma."
-    );
-
     return {
       series,
       summary,
       estimatedKneeLoadIndexAvg,
       approxTrunkOscillationsPerMinute,
-      notesForUser,
       trunkInclinationInsight: summary.trunkInclinationDeg ? trunkInclinationInsight(summary.trunkInclinationDeg) : null,
       balanceInsight: summary.balanceOffset ? balanceInsight(summary.balanceOffset) : null,
     };
