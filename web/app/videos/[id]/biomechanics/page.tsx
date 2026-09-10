@@ -264,6 +264,7 @@ export default function BiomechanicsPage() {
             </>
           )}
 
+          <ChartsGuideBox />
         </>
       )}
     </div>
@@ -285,6 +286,37 @@ function ChartInsightBox({ insight }: { insight: ChartInsight | null }) {
     >
       <p style={{ color: "var(--color-muted)", fontSize: 12, marginBottom: 8 }}>{insight.explanation}</p>
       <p style={{ color: "var(--color-white)", fontSize: 13, fontWeight: 600 }}>💡 {insight.recommendation}</p>
+    </div>
+  );
+}
+
+function ChartsGuideBox() {
+  const items = [
+    "El número grande de cada tarjeta es el promedio de la sesión. El punto de color y el borde usan la misma escala que la pantalla de Errores: verde = rango saludable, ámbar = leve, naranja = moderado, rojo = alto.",
+    "La línea pequeña dentro de la tarjeta muestra cómo varió esa métrica cuadro a cuadro durante todo el video.",
+    "Toca una tarjeta para abrir su gráfico de detalle: la curva suavizada, las mismas bandas de color de fondo, y al pasar el cursor por la línea ves el valor exacto en cada segundo.",
+    "La franja debajo de las tarjetas es la línea de tiempo de la sesión: cada bloque resume unos segundos y se colorea según la peor severidad de rodilla detectada en ese tramo, para ubicar en qué momento se perdió la forma.",
+  ];
+  return (
+    <div
+      style={{
+        background: "var(--color-black-soft)",
+        borderRadius: 10,
+        padding: 16,
+        marginTop: 24,
+        border: "0.5px solid rgba(255,255,255,0.08)",
+      }}
+    >
+      <p style={{ color: "var(--color-white)", fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
+        Cómo leer estos gráficos
+      </p>
+      <ul style={{ color: "var(--color-muted)", fontSize: 12, paddingLeft: 18, margin: 0 }}>
+        {items.map((item, i) => (
+          <li key={i} style={{ marginBottom: 6 }}>
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
