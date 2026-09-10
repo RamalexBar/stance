@@ -7,6 +7,9 @@ import { useRequireAuth } from "../../../../hooks/useRequireAuth";
 import { apiGet, apiPost } from "../../../../lib/api";
 import MetricChart from "../../../../components/MetricChart";
 import SkeletonReplay from "../../../../components/SkeletonReplay";
+import StatTile from "../../../../components/StatTile";
+import SessionTimeline from "../../../../components/SessionTimeline";
+import { DATA_SERIES_LEFT, DATA_SERIES_RIGHT } from "../../../../lib/dataSeriesColors";
 
 interface MetricSummary {
   min: number;
@@ -68,6 +71,16 @@ function fmt(n: number | undefined | null, decimals = 1) {
   return n.toFixed(decimals);
 }
 
+// Color de severidad para una tarjeta de resumen: busca en la misma banda de
+// zonas que colorea el fondo del gráfico (no se inventa un umbral aparte).
+function zoneColorFor(value: number | undefined | null, zones: { from: number; to: number; color: string }[], fallback: string) {
+  if (value === undefined || value === null || Number.isNaN(value)) return fallback;
+  const match = zones.find((z) => value >= z.from && value < z.to);
+  return match ? match.color : fallback;
+}
+
+type ActiveMetric = "knee" | "trunk" | "balance" | null;
+
 export default function BiomechanicsPage() {
   const { id } = useParams<{ id: string }>();
   const { ready } = useRequireAuth();
@@ -76,6 +89,7 @@ export default function BiomechanicsPage() {
   const [poseFrames, setPoseFrames] = useState<PoseAnalysisRecord["framesJson"]>([]);
   const [state, setState] = useState<"loading" | "computing" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [activeMetric, setActiveMetric] = useState<ActiveMetric>(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -139,10 +153,55 @@ export default function BiomechanicsPage() {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, margin: "20px 0" }}>
-            <SummaryCard label="Rodilla (izq/der, promedio)" value={`${fmt(summary.kneeAngleLeft?.mean)}° / ${fmt(summary.kneeAngleRight?.mean)}°`} />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, 1fr)",
+              gap: 10,
+              margin: "20px 0",
+            }}
+          >
+            <StatTile
+              label="Rodilla izquierda"
+              value={summary.kneeAngleLeft?.mean}
+              unit="°"
+              color={zoneColorFor(summary.kneeAngleLeft?.mean, KNEE_ZONES, SEGMENT_COLOR.OK)}
+              sparklineValues={series.map((s) => s.kneeAngleLeft)}
+              active={activeMetric === "knee"}
+              onClick={() => setActiveMetric(activeMetric === "knee" ? null : "knee")}
+            />
+            <StatTile
+              label="Rodilla derecha"
+              value={summary.kneeAngleRight?.mean}
+              unit="°"
+              color={zoneColorFor(summary.kneeAngleRight?.mean, KNEE_ZONES, SEGMENT_COLOR.OK)}
+              sparklineValues={series.map((s) => s.kneeAngleRight)}
+              active={activeMetric === "knee"}
+              onClick={() => setActiveMetric(activeMetric === "knee" ? null : "knee")}
+            />
+            <StatTile
+              label="Inclinación de tronco"
+              value={summary.trunkInclinationDeg?.mean}
+              unit="°"
+              color="var(--color-turquoise)"
+              sparklineValues={series.map((s) => s.trunkInclinationDeg)}
+              active={activeMetric === "trunk"}
+              onClick={() => setActiveMetric(activeMetric === "trunk" ? null : "trunk")}
+            />
+            <StatTile
+              label="Balance"
+              value={summary.balanceOffset?.mean}
+              unit=""
+              decimals={2}
+              color={zoneColorFor(summary.balanceOffset?.mean, BALANCE_ZONES, SEGMENT_COLOR.OK)}
+              sparklineValues={series.map((s) => s.balanceOffset)}
+              active={activeMetric === "balance"}
+              onClick={() => setActiveMetric(activeMetric === "balance" ? null : "balance")}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, margin: "0 0 20px" }}>
             <SummaryCard label="Cadera (izq/der, promedio)" value={`${fmt(summary.hipAngleLeft?.mean)}° / ${fmt(summary.hipAngleRight?.mean)}°`} />
-            <SummaryCard label="Inclinación de tronco" value={`${fmt(summary.trunkInclinationDeg?.mean)}°`} />
             <SummaryCard label="Simetría (menor = mejor)" value={`${fmt(summary.symmetryDelta?.mean)}°`} />
             <SummaryCard
               label="Índice de carga de rodilla (estimado)"
@@ -154,32 +213,57 @@ export default function BiomechanicsPage() {
             />
           </div>
 
-          <MetricChart
-            title="Ángulo de rodilla"
-            series={series}
-            yLabel="grados"
-            lines={[
-              { key: "kneeAngleLeft", label: "Izquierda", color: "#17E0C3" },
-              { key: "kneeAngleRight", label: "Derecha", color: "#FF6B4A" },
-            ]}
-            zones={KNEE_ZONES}
-          />
-          <MetricChart
-            title="Inclinación del tronco"
-            series={series}
-            yLabel="grados desde vertical"
-            lines={[{ key: "trunkInclinationDeg", label: "Tronco", color: "#17E0C3" }]}
-          />
-          <ChartInsightBox insight={summary.trunkInclinationInsight} />
+          {series.length > 1 && (
+            <SessionTimeline
+              frames={series}
+              segmentKey="knees"
+              title="Línea de tiempo de la sesión — severidad de rodillas"
+            />
+          )}
 
-          <MetricChart
-            title="Balance (adelante/atrás respecto a los tobillos)"
-            series={series}
-            yLabel="offset relativo"
-            lines={[{ key: "balanceOffset", label: "Balance", color: "#FF6B6B" }]}
-            zones={BALANCE_ZONES}
-          />
-          <ChartInsightBox insight={summary.balanceInsight} />
+          {activeMetric === null && (
+            <p style={{ color: "var(--color-muted)", fontSize: 12, margin: "-8px 0 20px" }}>
+              Toca una métrica arriba para ver su gráfico de detalle.
+            </p>
+          )}
+
+          {activeMetric === "knee" && (
+            <MetricChart
+              title="Ángulo de rodilla"
+              series={series}
+              yLabel="grados"
+              lines={[
+                { key: "kneeAngleLeft", label: "Izquierda", color: DATA_SERIES_LEFT.color, unit: "°" },
+                { key: "kneeAngleRight", label: "Derecha", color: DATA_SERIES_RIGHT.color, dash: DATA_SERIES_RIGHT.dash, unit: "°" },
+              ]}
+              zones={KNEE_ZONES}
+            />
+          )}
+
+          {activeMetric === "trunk" && (
+            <>
+              <MetricChart
+                title="Inclinación del tronco"
+                series={series}
+                yLabel="grados desde vertical"
+                lines={[{ key: "trunkInclinationDeg", label: "Tronco", color: DATA_SERIES_LEFT.color, unit: "°" }]}
+              />
+              <ChartInsightBox insight={summary.trunkInclinationInsight} />
+            </>
+          )}
+
+          {activeMetric === "balance" && (
+            <>
+              <MetricChart
+                title="Balance (adelante/atrás respecto a los tobillos)"
+                series={series}
+                yLabel="offset relativo"
+                lines={[{ key: "balanceOffset", label: "Balance", color: DATA_SERIES_LEFT.color }]}
+                zones={BALANCE_ZONES}
+              />
+              <ChartInsightBox insight={summary.balanceInsight} />
+            </>
+          )}
 
           <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 16, marginTop: 24 }}>
             <p style={{ color: "var(--color-muted)", fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
@@ -218,7 +302,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: 14 }}>
       <div style={{ color: "var(--color-muted)", fontSize: 11, marginBottom: 4 }}>{label}</div>
-      <div style={{ color: "var(--color-white)", fontSize: 18, fontWeight: 700 }}>{value}</div>
+      <div style={{ color: "var(--color-white)", fontSize: 18, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{value}</div>
     </div>
   );
 }

@@ -1,6 +1,14 @@
 "use client";
 
-import { VictoryChart, VictoryLine, VictoryArea, VictoryAxis, VictoryLegend } from "victory";
+import {
+  VictoryChart,
+  VictoryLine,
+  VictoryArea,
+  VictoryAxis,
+  VictoryLegend,
+  VictoryVoronoiContainer,
+  VictoryTooltip,
+} from "victory";
 
 interface Series {
   tSeconds: number;
@@ -13,10 +21,20 @@ interface Zone {
   color: string;
 }
 
+interface LineSpec {
+  key: string;
+  label: string;
+  color: string;
+  /** Patrón de guiones SVG (p.ej. "6,4") para distinguir la serie sin depender
+   *  solo del color — la segunda línea de una comparación siempre va punteada. */
+  dash?: string;
+  unit?: string;
+}
+
 interface Props {
   title: string;
   series: Series[];
-  lines: { key: string; label: string; color: string }[];
+  lines: LineSpec[];
   yLabel: string;
   xLabel?: string;
   /** Bandas de fondo verde/ámbar/naranja/rojo — mismos umbrales que la pantalla
@@ -74,22 +92,52 @@ export default function MetricChart({
     .map((z) => ({ ...z, from: Math.max(z.from, yMin), to: Math.min(z.to, yMax) }))
     .filter((z) => z.to > z.from);
 
+  // Un único trazo puede llevar relleno leve para dar peso a la curva; dos
+  // trazos en comparación (izq/der) se dejan sin relleno para que no se
+  // superpongan y ensucien la lectura — el segundo va punteado en su lugar.
+  const isComparison = lines.length > 1;
+
   return (
-    <div style={{ background: "var(--color-black-soft)", borderRadius: 10, padding: "14px 4px 4px", marginBottom: 20 }}>
-      <h3 style={{ color: "var(--color-white)", fontSize: "0.95rem", margin: "0 16px 4px" }}>{title}</h3>
+    <div
+      style={{
+        background: "var(--color-black-soft)",
+        borderRadius: 10,
+        padding: "14px 4px 4px",
+        marginBottom: 20,
+        border: "0.5px solid rgba(255,255,255,0.08)",
+      }}
+    >
+      <h3 style={{ color: "var(--color-white)", fontSize: "0.95rem", fontWeight: 500, margin: "0 16px 4px" }}>
+        {title}
+      </h3>
       <VictoryChart
         height={220}
         padding={{ top: 10, bottom: 40, left: 50, right: 20 }}
         domain={allValues.length ? { y: [yMin, yMax] } : undefined}
+        containerComponent={
+          <VictoryVoronoiContainer
+            voronoiDimension="x"
+            voronoiBlacklist={["zone-band"]}
+            labelComponent={
+              <VictoryTooltip
+                cornerRadius={6}
+                pointerLength={6}
+                flyoutStyle={{ fill: "#0B1A1E", stroke: "rgba(255,255,255,0.15)", strokeWidth: 0.5 }}
+                style={{ fill: "#ECF3EF", fontSize: 10 }}
+              />
+            }
+          />
+        }
       >
         {visibleZones.map((zone, i) => (
           <VictoryArea
             key={i}
+            name="zone-band"
             data={[
               { x: tMin, y0: zone.from, y: zone.to },
               { x: tMax, y0: zone.from, y: zone.to },
             ]}
-            style={{ data: { fill: zone.color, fillOpacity: 0.16, stroke: "none" } }}
+            style={{ data: { fill: zone.color, fillOpacity: 0.09, stroke: "none" } }}
           />
         ))}
         <VictoryAxis
@@ -98,7 +146,7 @@ export default function MetricChart({
             axisLabel: { fill: "#8FA8A3", padding: 28, fontSize: 10 },
             tickLabels: { fill: "#8FA8A3", fontSize: 10 },
             axis: { stroke: "rgba(255,255,255,0.15)" },
-            grid: { stroke: "rgba(255,255,255,0.05)" },
+            grid: { stroke: "transparent" },
           }}
         />
         <VictoryAxis
@@ -106,19 +154,44 @@ export default function MetricChart({
           label={yLabel}
           style={{
             axisLabel: { fill: "#8FA8A3", padding: 38, fontSize: 10 },
-            tickLabels: { fill: "#8FA8A3", fontSize: 10 },
+            tickLabels: { fill: "#8FA8A3", fontSize: 10, fontFamily: "inherit" },
             axis: { stroke: "rgba(255,255,255,0.15)" },
-            grid: { stroke: "rgba(255,255,255,0.05)" },
+            grid: { stroke: "rgba(255,255,255,0.04)" },
           }}
         />
+        {!isComparison &&
+          lines.map((line) => (
+            <VictoryArea
+              key={`fill-${line.key}`}
+              data={smoothedByKey[line.key]}
+              x="tSeconds"
+              y={line.key}
+              y0={() => yMin}
+              interpolation="natural"
+              style={{ data: { fill: line.color, fillOpacity: 0.1, stroke: "none" } }}
+            />
+          ))}
         {lines.map((line) => (
           <VictoryLine
             key={line.key}
             data={smoothedByKey[line.key]}
             x="tSeconds"
             y={line.key}
-            interpolation="monotoneX"
-            style={{ data: { stroke: line.color, strokeWidth: 2.5, strokeLinecap: "round" } }}
+            interpolation="natural"
+            labels={({ datum }: any) =>
+              `${line.label} · ${Number(datum.tSeconds).toFixed(1)}s · ${Number(datum[line.key]).toFixed(1)}${
+                line.unit ?? ""
+              }`
+            }
+            style={{
+              data: {
+                stroke: line.color,
+                strokeWidth: 2,
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+                strokeDasharray: line.dash,
+              },
+            }}
           />
         ))}
         {lines.length > 1 && (
@@ -127,7 +200,7 @@ export default function MetricChart({
             y={0}
             orientation="horizontal"
             gutter={16}
-            style={{ labels: { fill: "#ECF3EF", fontSize: 10 } }}
+            style={{ labels: { fill: "#ECF3EF", fontSize: 10, fontWeight: 400 } }}
             data={lines.map((l) => ({ name: l.label, symbol: { fill: l.color } }))}
           />
         )}
