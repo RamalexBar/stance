@@ -25,7 +25,8 @@ export const windController = {
     try {
       const userId = await resolveUserId(req);
       const discipline = req.query.discipline as Discipline | undefined;
-      const result = await windService.getToday(userId, discipline);
+      const date = req.query.date ? String(req.query.date) : undefined;
+      const result = await windService.getToday(userId, discipline, date);
       ok(res, result);
     } catch (err) {
       next(err);

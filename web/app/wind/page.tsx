@@ -18,18 +18,20 @@ interface ShoreResult {
 
 interface TodayWind {
   spot: { name: string | null; lat: number; lon: number; seaDirectionDeg: number };
+  date: string;
+  isToday: boolean;
   current: {
     time: string;
-    windSpeedKmh: number;
-    windGustsKmh: number;
+    windSpeedKt: number;
+    windGustsKt: number;
     windDirectionFromDeg: number;
     shore: ShoreResult;
     levelCaution: string | null;
   };
   hourly: {
     time: string;
-    windSpeedKmh: number;
-    windGustsKmh: number;
+    windSpeedKt: number;
+    windGustsKt: number;
     windDirectionFromDeg: number;
     shore: ShoreClassification;
     shoreSafetyLevel: SafetyLevel;
@@ -38,7 +40,7 @@ interface TodayWind {
   }[];
   recommendation: {
     discipline: string;
-    windSpeedKmh: number;
+    windSpeedKt: number;
     kiteSizeM2?: { min: number; max: number };
     wingSizeM2?: { min: number; max: number };
     boardVolumeLiters?: { min: number; max: number };
@@ -93,6 +95,22 @@ const BAND_LABEL: Record<WindSpeedBandId, string> = {
 
 const DISCIPLINES = ["KITESURF", "WINGFOIL"];
 
+const WEEKDAY_LABEL = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+
+// Mismo rango que MAX_FORECAST_DAYS en api/src/modules/wind/wind.client.ts.
+function nextDays(count: number) {
+  const out: { iso: string; label: string }[] = [];
+  const today = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const iso = d.toISOString().slice(0, 10);
+    const label = i === 0 ? "Hoy" : i === 1 ? "Mañana" : WEEKDAY_LABEL[d.getDay()];
+    out.push({ iso, label });
+  }
+  return out;
+}
+
 function fmt(n: number, decimals = 0) {
   return Number.isFinite(n) ? n.toFixed(decimals) : "—";
 }
@@ -100,20 +118,23 @@ function fmt(n: number, decimals = 0) {
 export default function WindPage() {
   const { ready } = useRequireAuth();
   const [discipline, setDiscipline] = useState<string | null>(null);
+  const [date, setDate] = useState<string>(() => nextDays(1)[0].iso);
   const [data, setData] = useState<TodayWind | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "no-spot" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const days = nextDays(7);
 
   useEffect(() => {
     if (!ready) return;
     load();
-  }, [ready, discipline]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready, discipline, date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     setState("loading");
     try {
-      const query = discipline ? `?discipline=${discipline}` : "";
-      const result = await apiGet<TodayWind>(`/api/v1/wind/today${query}`);
+      const params = new URLSearchParams({ date });
+      if (discipline) params.set("discipline", discipline);
+      const result = await apiGet<TodayWind>(`/api/v1/wind/today?${params.toString()}`);
       setData(result);
       setState("ready");
     } catch (err) {
@@ -132,8 +153,27 @@ export default function WindPage() {
       <p className="footer-link" style={{ textAlign: "left", marginBottom: 8 }}>
         <Link href="/profile">← Volver al perfil</Link>
       </p>
-      <h1 style={{ color: "var(--color-turquoise)", marginBottom: 4 }}>Viento de hoy</h1>
-      <p className="subtitle">Condición actual en tu spot, seguridad y equipo recomendado</p>
+      <h1 style={{ color: "var(--color-turquoise)", marginBottom: 4 }}>Pronóstico de viento</h1>
+      <p className="subtitle">Condición en tu spot por día, seguridad y equipo recomendado</p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto", paddingBottom: 4 }}>
+        {days.map((d) => (
+          <button
+            key={d.iso}
+            className="btn-secondary"
+            style={{
+              width: "auto",
+              padding: "8px 14px",
+              flexShrink: 0,
+              borderColor: date === d.iso ? "var(--color-turquoise)" : "rgba(255,255,255,0.15)",
+              color: date === d.iso ? "var(--color-turquoise)" : "var(--color-white)",
+            }}
+            onClick={() => setDate(d.iso)}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {DISCIPLINES.map((d) => (
@@ -180,8 +220,8 @@ export default function WindPage() {
           <p style={{ color: "var(--color-muted)", fontSize: 13, marginBottom: 16 }}>📍 {data.spot.name}</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
-            <Stat label="Viento actual" value={`${fmt(data.current.windSpeedKmh)} km/h`} />
-            <Stat label="Ráfagas" value={`${fmt(data.current.windGustsKmh)} km/h`} />
+            <Stat label={data.isToday ? "Viento actual" : "Viento (mediodía aprox.)"} value={`${fmt(data.current.windSpeedKt)} kt`} />
+            <Stat label="Ráfagas" value={`${fmt(data.current.windGustsKt)} kt`} />
             <Stat label="Dirección" value={`${fmt(data.current.windDirectionFromDeg)}°`} />
           </div>
 
@@ -212,7 +252,9 @@ export default function WindPage() {
 
           {data.hourly.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <p style={{ color: "var(--color-white)", fontWeight: 600, marginBottom: 4 }}>Viento por hora (hoy)</p>
+              <p style={{ color: "var(--color-white)", fontWeight: 600, marginBottom: 4 }}>
+                Viento por hora ({days.find((d) => d.iso === data.date)?.label.toLowerCase() ?? data.date})
+              </p>
               <p style={{ color: "var(--color-muted)", fontSize: 11, marginBottom: 8 }}>
                 Color = intensidad del viento para foil/kite · flecha = hacia dónde sopla · ⚠️ = dirección hacia mar
                 abierto
@@ -255,11 +297,11 @@ export default function WindPage() {
                         {hour.toString().padStart(2, "0")}:00
                       </div>
                       <div style={{ color, fontSize: 14, fontWeight: 700, margin: "4px 0" }}>
-                        {fmt(h.windSpeedKmh)} km/h
+                        {fmt(h.windSpeedKt)} kt
                       </div>
                       {gustRiskier && (
                         <div style={{ color: BAND_COLOR[h.gustBand], fontSize: 9, marginBottom: 2 }}>
-                          ráfagas {fmt(h.windGustsKmh)}
+                          ráfagas {fmt(h.windGustsKt)}
                         </div>
                       )}
                       <div

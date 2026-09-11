@@ -9,8 +9,8 @@ type SafetyLevel = "SEGURO" | "PRECAUCION" | "PELIGROSO";
 interface TodayWind {
   spot: { name: string | null };
   current: {
-    windSpeedKmh: number;
-    windGustsKmh: number;
+    windSpeedKt: number;
+    windGustsKt: number;
     shore: { classification: string; safetyLevel: SafetyLevel; safetyNote: string };
     levelCaution: string | null;
   };
@@ -68,7 +68,7 @@ export default function TodayConditionsBanner() {
             🌬️ Hoy en {data.spot.name ?? "tu spot"}
           </p>
           <p style={{ color: "var(--color-white)", fontSize: 14 }}>
-            {data.current.windSpeedKmh.toFixed(0)} km/h (ráfagas {data.current.windGustsKmh.toFixed(0)}) ·{" "}
+            {data.current.windSpeedKt.toFixed(0)} kt (ráfagas {data.current.windGustsKt.toFixed(0)}) ·{" "}
             <span style={{ color: SAFETY_COLOR[shore.safetyLevel], fontWeight: 700 }}>
               {SAFETY_LABEL[shore.safetyLevel]}
             </span>

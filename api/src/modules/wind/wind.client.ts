@@ -7,15 +7,15 @@ const GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
 export interface WindForecast {
   current: {
     time: string;
-    windSpeedKmh: number;
+    windSpeedKt: number;
     windDirectionFromDeg: number;
-    windGustsKmh: number;
+    windGustsKt: number;
   };
   hourly: {
     time: string;
-    windSpeedKmh: number;
+    windSpeedKt: number;
     windDirectionFromDeg: number;
-    windGustsKmh: number;
+    windGustsKt: number;
   }[];
 }
 
@@ -27,15 +27,19 @@ export interface SpotSearchResult {
   lon: number;
 }
 
-export async function fetchWindForecast(lat: number, lon: number): Promise<WindForecast> {
+// Open-Meteo permite hasta 16 días de pronóstico; 7 alcanza sobrado para
+// planear la semana y mantiene la respuesta liviana.
+const MAX_FORECAST_DAYS = 7;
+
+export async function fetchWindForecast(lat: number, lon: number, days = 1): Promise<WindForecast> {
   const url = new URL(FORECAST_URL);
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lon));
   url.searchParams.set("current", "wind_speed_10m,wind_direction_10m,wind_gusts_10m");
   url.searchParams.set("hourly", "wind_speed_10m,wind_direction_10m,wind_gusts_10m");
-  url.searchParams.set("forecast_days", "1");
+  url.searchParams.set("forecast_days", String(Math.min(Math.max(days, 1), MAX_FORECAST_DAYS)));
   url.searchParams.set("timezone", "auto");
-  url.searchParams.set("wind_speed_unit", "kmh");
+  url.searchParams.set("wind_speed_unit", "kn");
 
   const response = await fetch(url.toString());
   if (!response.ok) {
@@ -49,15 +53,15 @@ export async function fetchWindForecast(lat: number, lon: number): Promise<WindF
   return {
     current: {
       time: data.current.time,
-      windSpeedKmh: data.current.wind_speed_10m,
+      windSpeedKt: data.current.wind_speed_10m,
       windDirectionFromDeg: data.current.wind_direction_10m,
-      windGustsKmh: data.current.wind_gusts_10m,
+      windGustsKt: data.current.wind_gusts_10m,
     },
     hourly: data.hourly.time.map((time, i) => ({
       time,
-      windSpeedKmh: data.hourly.wind_speed_10m[i],
+      windSpeedKt: data.hourly.wind_speed_10m[i],
       windDirectionFromDeg: data.hourly.wind_direction_10m[i],
-      windGustsKmh: data.hourly.wind_gusts_10m[i],
+      windGustsKt: data.hourly.wind_gusts_10m[i],
     })),
   };
 }

@@ -81,15 +81,15 @@ export function classifyShoreWind(
  */
 export function levelCaution(
   level: SkillLevel | null,
-  windSpeedKmh: number,
-  windGustsKmh: number,
+  windSpeedKt: number,
+  windGustsKt: number,
   safetyLevel: ShoreClassificationResult["safetyLevel"]
 ): string | null {
   if (level === "BEGINNER") {
     if (safetyLevel !== "SEGURO") {
       return "No recomendado para tu nivel: sal solo si vas acompañado de alguien con más experiencia, o espera mejores condiciones.";
     }
-    if (windSpeedKmh > 25 || windGustsKmh > 35) {
+    if (windSpeedKt > 13 || windGustsKt > 19) {
       return "Viento fuerte para tu nivel — considera ir acompañado o esperar un día con menos ráfagas.";
     }
     return null;
@@ -99,10 +99,10 @@ export function levelCaution(
     if (safetyLevel === "PELIGROSO") {
       return "Condiciones peligrosas incluso para nivel intermedio — evalúa con cuidado y considera ir acompañado.";
     }
-    if (safetyLevel === "PRECAUCION" && windGustsKmh > 40) {
+    if (safetyLevel === "PRECAUCION" && windGustsKt > 22) {
       return "Ráfagas fuertes con viento paralelo a la costa — puede arrastrarte lejos de tu punto de entrada.";
     }
-    if (windGustsKmh > 55) {
+    if (windGustsKt > 30) {
       return "Ráfagas muy fuertes — aunque el viento venga hacia la playa, considera equipo más pequeño y estar atento a golpes de viento.";
     }
     return null;
@@ -126,13 +126,10 @@ export interface WindSpeedBand {
   label: string;
 }
 
-const KMH_PER_KNOT = 1.852;
-
 /**
  * Escala de 7 colores estilo Windy/Windfinder para foil (wing/kite), en
  * nudos — mismos rangos para ambas disciplinas por ahora, a falta de una
- * tabla específica de kitesurf. Los límites se evalúan en nudos (no km/h)
- * para que coincidan exactamente con la tabla de referencia.
+ * tabla específica de kitesurf.
  */
 const WIND_SPEED_BANDS: { id: WindSpeedBandId; maxKt: number; color: string; label: string }[] = [
   { id: "INVIABLE", maxKt: 7, color: "#8ECFEA", label: "Inviable" },
@@ -144,15 +141,14 @@ const WIND_SPEED_BANDS: { id: WindSpeedBandId; maxKt: number; color: string; lab
   { id: "PELIGROSO", maxKt: Infinity, color: "#8E24AA", label: "Peligroso" },
 ];
 
-export function classifyWindSpeedBand(windSpeedKmh: number): WindSpeedBand {
-  const knots = windSpeedKmh / KMH_PER_KNOT;
-  const band = WIND_SPEED_BANDS.find((b) => knots <= b.maxKt) ?? WIND_SPEED_BANDS[WIND_SPEED_BANDS.length - 1];
+export function classifyWindSpeedBand(windSpeedKt: number): WindSpeedBand {
+  const band = WIND_SPEED_BANDS.find((b) => windSpeedKt <= b.maxKt) ?? WIND_SPEED_BANDS[WIND_SPEED_BANDS.length - 1];
   return { id: band.id, color: band.color, label: band.label };
 }
 
 export interface EquipmentRecommendation {
   discipline: Discipline;
-  windSpeedKmh: number;
+  windSpeedKt: number;
   kiteSizeM2?: { min: number; max: number };
   wingSizeM2?: { min: number; max: number };
   boardVolumeLiters?: { min: number; max: number };
@@ -174,24 +170,24 @@ export function recommendEquipment(params: {
   discipline: Discipline;
   weightKg: number | null;
   level: SkillLevel | null;
-  windSpeedKmh: number;
+  windSpeedKt: number;
 }): EquipmentRecommendation {
-  const { discipline, weightKg, level, windSpeedKmh } = params;
+  const { discipline, weightKg, level, windSpeedKt } = params;
   const notes: string[] = [];
 
   if (!weightKg) {
     notes.push("Agrega tu peso en el perfil para obtener un rango de tamaño recomendado.");
-    return { discipline, windSpeedKmh, notes };
+    return { discipline, windSpeedKt, notes };
   }
 
-  const windKnots = Math.max(windSpeedKmh / 1.852, 3);
+  const windKnots = Math.max(windSpeedKt, 3);
 
   if (discipline === "KITESURF") {
     const mid = (weightKg * 3.0) / windKnots;
     const kiteSizeM2 = { min: clamp(mid * 0.85, 4, 17), max: clamp(mid * 1.15, 4, 17) };
     if (mid * 0.85 > 17) notes.push("Viento débil para tu peso: incluso la cometa más grande recomendada podría no ser suficiente.");
     if (mid * 1.15 < 4) notes.push("Viento fuerte para tu peso: incluso la cometa más pequeña recomendada puede ser demasiada potencia — sal solo si tienes experiencia.");
-    return { discipline, windSpeedKmh, kiteSizeM2, notes };
+    return { discipline, windSpeedKt, kiteSizeM2, notes };
   }
 
   // WINGFOIL
@@ -207,5 +203,5 @@ export function recommendEquipment(params: {
 
   if (!level) notes.push("Agrega tu nivel en el perfil para afinar el volumen de tabla recomendado.");
 
-  return { discipline, windSpeedKmh, wingSizeM2, boardVolumeLiters, notes };
+  return { discipline, windSpeedKt, wingSizeM2, boardVolumeLiters, notes };
 }
