@@ -1,6 +1,6 @@
-import Image from "next/image";
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
+import AppIconBadge from "../components/AppIconBadge";
 
 export const metadata = {
   title: "Easy Kite",
@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body>
         <AuthProvider>
-          <Image src="/icon.png" alt="Easy Kite" width={36} height={36} className="app-icon-badge" priority />
+          <AppIconBadge />
           {children}
         </AuthProvider>
       </body>

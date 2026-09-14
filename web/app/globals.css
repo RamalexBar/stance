@@ -176,6 +176,31 @@ a {
   z-index: 40;
 }
 
+.splash-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-icon {
+  border-radius: 30px;
+  box-shadow: 0 20px 60px -18px rgba(23, 224, 195, 0.45);
+  animation: splashIn 0.6s ease-out;
+}
+
+@keyframes splashIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
