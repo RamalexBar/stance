@@ -49,6 +49,7 @@ export default function ProfilePage() {
   const { ready } = useRequireAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [spotQuery, setSpotQuery] = useState("");
@@ -56,10 +57,17 @@ export default function ProfilePage() {
   const [searchingSpot, setSearchingSpot] = useState(false);
   const [spotError, setSpotError] = useState<string | null>(null);
 
+  function loadProfile() {
+    setLoadError(null);
+    apiGet<Profile>("/api/v1/users/me")
+      .then(setProfile)
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "No se pudo cargar el perfil."));
+  }
+
   useEffect(() => {
     if (!ready) return;
-    apiGet<Profile>("/api/v1/users/me").then(setProfile).catch(console.error);
-  }, [ready]);
+    loadProfile();
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -125,10 +133,23 @@ export default function ProfilePage() {
     });
   }
 
-  if (!ready || !profile) {
+  if (!ready || (!profile && !loadError)) {
     return (
       <div className="auth-shell">
         <p style={{ color: "var(--color-muted)" }}>Cargando perfil…</p>
+      </div>
+    );
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className="auth-shell">
+        <div style={{ textAlign: "center" }}>
+          <p className="error-text">{loadError ?? "No se pudo cargar el perfil."}</p>
+          <button className="btn-secondary" style={{ width: "auto", padding: "10px 16px", marginTop: 8 }} onClick={loadProfile}>
+            Reintentar
+          </button>
+        </div>
       </div>
     );
   }

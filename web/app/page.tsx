@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 
@@ -15,7 +16,17 @@ export default function HomePage() {
 
   return (
     <div className="auth-shell">
-      <p style={{ color: "var(--color-muted)" }}>Cargando Easy Kite…</p>
+      <div style={{ textAlign: "center" }}>
+        <Image
+          src="/icon.png"
+          alt="Easy Kite"
+          width={96}
+          height={96}
+          style={{ borderRadius: 20, display: "block", margin: "0 auto 16px" }}
+          priority
+        />
+        <p style={{ color: "var(--color-muted)" }}>Cargando Easy Kite…</p>
+      </div>
     </div>
   );
 }

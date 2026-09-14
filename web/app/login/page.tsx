@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -45,8 +46,18 @@ export default function LoginPage() {
   return (
     <div className="auth-shell">
       <div className="auth-card">
-        <h1>Easy Kite</h1>
-        <p className="subtitle">Inicia sesión para analizar tu técnica</p>
+        <Image
+          src="/icon.png"
+          alt="Easy Kite"
+          width={96}
+          height={96}
+          style={{ borderRadius: 20, display: "block", margin: "0 auto 16px" }}
+          priority
+        />
+        <h1 style={{ textAlign: "center" }}>Easy Kite</h1>
+        <p className="subtitle" style={{ textAlign: "center" }}>
+          Inicia sesión para analizar tu técnica
+        </p>
 
         <form onSubmit={handleEmailLogin}>
           <div className="field">
