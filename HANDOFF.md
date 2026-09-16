@@ -16,7 +16,7 @@ npx prisma migrate deploy     # aplica las migraciones (incluye GpsTrack)
 
 ## 2. Copiar los 3 archivos .env manualmente
 
-Los `.env` tienen secretos reales (Firebase, Supabase, Stripe, Anthropic) y por diseño **no están en git**. Cópialos tal cual desde el PC anterior (USB, disco compartido, etc.):
+Los `.env` tienen secretos reales (Firebase, Supabase, Paddle, Anthropic) y por diseño **no están en git**. Cópialos tal cual desde el PC anterior (USB, disco compartido, etc.):
 
 - `api/.env`
 - `web/.env.local`

@@ -1,11 +1,12 @@
+import { EventName } from "@paddle/paddle-node-sdk";
 import { NextFunction, Request, Response } from "express";
 import { subscriptionsService } from "./subscriptions.service";
 import { subscriptionsRepository } from "./subscriptions.repository";
 import { userService } from "../users/user.service";
-import { createCheckoutSession, constructWebhookEvent, getCheckoutSessionPriceId } from "./stripe.client";
+import { verifyWebhookEvent } from "./paddle.client";
 import { PLAN_CONFIG, PlanName } from "./planLimits";
 import { ok } from "../../shared/apiResponse";
-import { AppError, UnauthorizedError } from "../../shared/errors";
+import { UnauthorizedError } from "../../shared/errors";
 
 async function resolveUserId(req: Request): Promise<string> {
   if (!req.firebaseUser) throw new UnauthorizedError();
@@ -13,32 +14,55 @@ async function resolveUserId(req: Request): Promise<string> {
   return profile.id;
 }
 
-function findPlanByPriceId(priceId: string): PlanName | null {
+function findPlanByPriceId(priceId: string | undefined): PlanName | null {
+  if (!priceId) return null;
   const entry = (Object.entries(PLAN_CONFIG) as [PlanName, (typeof PLAN_CONFIG)[PlanName]][]).find(
-    ([, config]) => config.stripePriceId === priceId
+    ([, config]) => config.paddlePriceId === priceId
   );
   return entry ? entry[0] : null;
 }
 
-// El enum SubscriptionStatus solo tiene ACTIVE/PAST_DUE/CANCELED/TRIALING; los
-// demás estados de Stripe se mapean al más cercano en términos de acceso.
-function mapStripeStatus(stripeStatus: string): "ACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING" {
-  switch (stripeStatus) {
+// El enum SubscriptionStatus local solo tiene ACTIVE/PAST_DUE/CANCELED/TRIALING;
+// "paused" de Paddle se trata como PAST_DUE (pierde acceso, pero no se borra el
+// registro como en un cancelado real).
+function mapPaddleStatus(paddleStatus: string): "ACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING" {
+  switch (paddleStatus) {
     case "active":
       return "ACTIVE";
     case "trialing":
       return "TRIALING";
     case "past_due":
-    case "incomplete":
     case "paused":
       return "PAST_DUE";
     case "canceled":
-    case "unpaid":
-    case "incomplete_expired":
       return "CANCELED";
     default:
       return "CANCELED";
   }
+}
+
+// Todos los eventos subscription.* de Paddle (created/activated/updated/
+// trialing/past_due/paused/resumed/canceled) traen la misma forma de datos,
+// así que un solo handler basta — a diferencia de Stripe, Paddle no separa
+// "cancelado" en un tipo de evento distinto, solo cambia el status.
+async function upsertFromSubscriptionData(data: any) {
+  const userId =
+    data.customData?.userId ??
+    (await subscriptionsRepository.findByPaddleCustomerId(data.customerId))?.userId;
+  if (!userId) return;
+
+  const priceId = data.items?.[0]?.price?.id as string | undefined;
+  const plan = findPlanByPriceId(priceId);
+  const existing = await subscriptionsRepository.findByUserId(userId);
+
+  await subscriptionsRepository.upsert({
+    userId,
+    plan: plan ?? existing?.plan ?? "FREE",
+    status: mapPaddleStatus(data.status),
+    paddleCustomerId: data.customerId,
+    paddleSubscriptionId: data.id,
+    currentPeriodEnd: data.currentBillingPeriod?.endsAt ? new Date(data.currentBillingPeriod.endsAt) : undefined,
+  });
 }
 
 export const subscriptionsController = {
@@ -59,82 +83,23 @@ export const subscriptionsController = {
     }
   },
 
-  async createCheckout(req: Request, res: Response, next: NextFunction) {
-    try {
-      const userId = await resolveUserId(req);
-      const plan = req.body.plan as PlanName;
-      const config = PLAN_CONFIG[plan];
-
-      if (!config || !config.stripePriceId) {
-        throw new AppError("Ese plan no está disponible para pago (falta configurar el Price ID de Stripe).", 400);
-      }
-
-      const existing = await subscriptionsRepository.findByUserId(userId);
-      const session = await createCheckoutSession({
-        userId,
-        userEmail: req.firebaseUser!.email,
-        priceId: config.stripePriceId,
-        existingCustomerId: existing?.stripeCustomerId ?? undefined,
-      });
-
-      ok(res, { url: session.url });
-    } catch (err) {
-      next(err);
-    }
-  },
-
   async webhook(req: Request, res: Response, next: NextFunction) {
     try {
-      const signature = req.headers["stripe-signature"] as string;
-      const event = constructWebhookEvent(req.body, signature);
+      const signature = req.headers["paddle-signature"] as string;
+      const rawBody = (req.body as Buffer).toString();
+      const event = await verifyWebhookEvent(rawBody, signature);
 
-      switch (event.type) {
-        case "checkout.session.completed": {
-          const session = event.data.object as any;
-          const userId = session.metadata?.userId ?? session.client_reference_id;
-          const priceId = await getCheckoutSessionPriceId(session.id);
-          if (userId) {
-            await subscriptionsRepository.upsert({
-              userId,
-              plan: (priceId && findPlanByPriceId(priceId)) || "PREMIUM",
-              status: "ACTIVE",
-              stripeCustomerId: session.customer,
-              stripeSubscriptionId: session.subscription,
-            });
-          }
+      switch (event.eventType) {
+        case EventName.SubscriptionCreated:
+        case EventName.SubscriptionActivated:
+        case EventName.SubscriptionUpdated:
+        case EventName.SubscriptionTrialing:
+        case EventName.SubscriptionPastDue:
+        case EventName.SubscriptionPaused:
+        case EventName.SubscriptionResumed:
+        case EventName.SubscriptionCanceled:
+          await upsertFromSubscriptionData(event.data as any);
           break;
-        }
-        case "customer.subscription.updated":
-        case "customer.subscription.created": {
-          const sub = event.data.object as any;
-          const existing = await subscriptionsRepository.findByStripeCustomerId(sub.customer);
-          if (existing) {
-            const priceId = sub.items?.data?.[0]?.price?.id;
-            const plan = (priceId && findPlanByPriceId(priceId)) || existing.plan;
-            await subscriptionsRepository.upsert({
-              userId: existing.userId,
-              plan,
-              status: mapStripeStatus(sub.status),
-              stripeCustomerId: sub.customer,
-              stripeSubscriptionId: sub.id,
-              currentPeriodEnd: new Date(sub.current_period_end * 1000),
-            });
-          }
-          break;
-        }
-        case "customer.subscription.deleted": {
-          const sub = event.data.object as any;
-          const existing = await subscriptionsRepository.findByStripeCustomerId(sub.customer);
-          if (existing) {
-            await subscriptionsRepository.upsert({
-              userId: existing.userId,
-              plan: "FREE",
-              status: "CANCELED",
-              stripeCustomerId: sub.customer,
-            });
-          }
-          break;
-        }
       }
 
       res.json({ received: true });

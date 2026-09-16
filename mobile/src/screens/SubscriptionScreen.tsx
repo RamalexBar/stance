@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from "react-native";
-import { apiGet, apiPost } from "../api/client";
+import { apiGet } from "../api/client";
 import { colors } from "../theme/colors";
+
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? "http://localhost:3000";
 
 interface PlanInfo {
   name: string;
@@ -16,23 +18,18 @@ interface PlanInfo {
 export default function SubscriptionScreen() {
   const [plans, setPlans] = useState<PlanInfo[]>([]);
   const [mine, setMine] = useState<any>(null);
-  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     apiGet<PlanInfo[]>("/api/v1/subscriptions/plans").then(setPlans).catch(console.error);
     apiGet<any>("/api/v1/subscriptions/me").then(setMine).catch(console.error);
   }, []);
 
-  async function subscribe(planName: string) {
-    setBusy(planName);
-    try {
-      const result = await apiPost<{ url: string }>("/api/v1/subscriptions/checkout", { plan: planName });
-      Linking.openURL(result.url);
-    } catch {
-      // Silenciosamente falla si Stripe no está configurado; el usuario reintenta.
-    } finally {
-      setBusy(null);
-    }
+  // Paddle no tiene SDK nativo para React Native — el checkout (Paddle.js)
+  // solo puede abrirse en un navegador. En vez de crear la sesión de pago acá,
+  // se abre la página de Planes del sitio web con el plan ya elegido; una vez
+  // el usuario inicia sesión ahí, esa página abre el checkout automáticamente.
+  function subscribe(planName: string) {
+    Linking.openURL(`${WEB_URL}/subscription?plan=${planName}`);
   }
 
   return (
@@ -55,8 +52,8 @@ export default function SubscriptionScreen() {
           <Text style={styles.feature}>{p.allowReports ? "Reportes PDF/Excel ✓" : "Sin reportes"}</Text>
 
           {p.name !== "FREE" && mine?.plan !== p.name && (
-            <TouchableOpacity style={styles.button} onPress={() => subscribe(p.name)} disabled={busy === p.name}>
-              <Text style={styles.buttonText}>{busy === p.name ? "Abriendo…" : "Suscribirse"}</Text>
+            <TouchableOpacity style={styles.button} onPress={() => subscribe(p.name)}>
+              <Text style={styles.buttonText}>Suscribirse</Text>
             </TouchableOpacity>
           )}
           {mine?.plan === p.name && <Text style={styles.currentTag}>Plan actual</Text>}

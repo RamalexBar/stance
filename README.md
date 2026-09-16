@@ -4,7 +4,7 @@ App de coaching para deportistas de kitesurf y wing foil: sube un video de tu
 sesión, se analiza pose/biomecánica/movimiento, se detectan errores técnicos,
 se compara contra tus sesiones anteriores o contra un video de referencia, y
 un entrenador IA (Claude) genera un plan de mejora. Incluye reportes en
-PDF/Excel, gestión de escuelas/grupos, y planes de suscripción vía Stripe.
+PDF/Excel, gestión de escuelas/grupos, y planes de suscripción vía Paddle.
 
 Tres proyectos en este repo:
 
@@ -44,7 +44,7 @@ PostgreSQL (vía Prisma)   ← perfiles, roles, videos, análisis, suscripciones
    │
    ├── Supabase Storage   ← almacenamiento de los videos subidos
    ├── Anthropic API      ← genera el plan del entrenador IA
-   └── Stripe             ← checkout y webhooks de suscripción
+   └── Paddle             ← checkout (Paddle.js en el navegador) y webhooks de suscripción
 ```
 
 **Por qué así:** Firebase resuelve registro, login, reseteo de contraseña y
@@ -82,7 +82,7 @@ stance/
 │   │   │   ├── injuries/      # registro manual de lesiones
 │   │   │   ├── reports/       # PDF/Excel + envío por correo
 │   │   │   ├── schools/       # grupos, entrenadores, ranking
-│   │   │   └── subscriptions/ # planes, checkout y webhooks de Stripe
+│   │   │   └── subscriptions/ # planes y webhooks de Paddle (el checkout lo abre Paddle.js en el navegador)
 │   │   ├── shared/            # prisma client, errores, apiResponse
 │   │   ├── app.ts
 │   │   └── server.ts
@@ -107,7 +107,7 @@ stance/
   - [Firebase](https://console.firebase.google.com) — autenticación (obligatorio).
   - [Supabase](https://supabase.com) — almacenamiento de videos (obligatorio para subir videos).
   - [Anthropic Console](https://console.anthropic.com) — entrenador IA (obligatorio para esa función; el resto de la app funciona sin ella).
-  - [Stripe](https://dashboard.stripe.com) — suscripciones (opcional; sin esto los endpoints de pago responden 503).
+  - [Paddle](https://vendors.paddle.com) — suscripciones (opcional; sin esto los endpoints de pago responden 503).
 - Para mobile: [Expo Go](https://expo.dev/go) en tu teléfono (desarrollo) o la app [EAS CLI](https://docs.expo.dev/eas/) (`npm i -g eas-cli`) para builds de producción.
 
 ## 4. Backend (`api/`) — cómo levantarlo
@@ -136,14 +136,22 @@ falle al arrancar si faltan (`env.ts` las valida con `required()`):
 | `CORS_ORIGINS` | No (default `http://localhost:3000`) | Lista separada por comas si tienes más de un frontend |
 | `PORT` | No (default `4000`) | — |
 | `SMTP_HOST/PORT/USER/PASS/FROM` | No | Solo si usas "Enviar reporte por correo"; cualquier proveedor SMTP |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PREMIUM/COACH/ACADEMIA` | No | Solo si activas suscripciones; ver nota abajo |
-| `FRONTEND_URL` | No (default `http://localhost:3000`) | Adonde redirige Stripe Checkout al terminar |
+| `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_ENVIRONMENT`, `PADDLE_PRICE_PREMIUM/COACH/ACADEMIA` | No | Solo si activas suscripciones; ver nota abajo |
+| `FRONTEND_URL` | No (default `http://localhost:3000`) | Se usa como referencia general del sitio; el checkout de Paddle no redirige aquí (ver nota abajo) |
 
-**Probar el webhook de Stripe en local:**
-```bash
-stripe listen --forward-to localhost:4000/api/v1/subscriptions/webhook
-# copia el "whsec_..." que imprime a STRIPE_WEBHOOK_SECRET
-```
+**Probar el webhook de Paddle en local:** a diferencia de Stripe, Paddle no
+tiene un CLI que reenvíe eventos — necesita una URL pública HTTPS. Usa un
+túnel (`ngrok http 4000`) y registra `https://<tu-túnel>.ngrok.io/api/v1/subscriptions/webhook`
+en el Dashboard de Paddle (Developer Tools → Notifications), copiando el
+signing secret que te da a `PADDLE_WEBHOOK_SECRET`.
+
+**El checkout es distinto al de Stripe:** Paddle Billing no ofrece una página
+de pago alojada a la que el backend pueda redirigir — el checkout se abre
+como overlay en el navegador con Paddle.js (`web/app/subscription/page.tsx`),
+usando el `paddlePriceId` de cada plan (`GET /api/v1/subscriptions/plans`) y
+el token público del cliente (`NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` en `web/.env.local`).
+El backend solo se entera del resultado vía webhook, no hay endpoint de
+`/checkout`.
 
 ## 5. Web (`web/`) — cómo levantarlo
 

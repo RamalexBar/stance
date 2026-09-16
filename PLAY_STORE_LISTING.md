@@ -72,7 +72,7 @@ Esta es la parte donde más desarrolladores cometen errores — complétala con 
 | Información personal (correo, nombre) | Sí | No | Cuenta y funcionalidad |
 | Fotos y videos | Sí | No | Funcionalidad principal (análisis) |
 | Info de salud y fitness (actividad física) | Sí — las métricas de rendimiento derivadas del video | No | Funcionalidad de la app |
-| Info financiera (compras) | Solo si el usuario se suscribe | Sí, con Stripe (el procesador de pago) | Procesar la suscripción |
+| Info financiera (compras) | Solo si el usuario se suscribe | Sí, con Paddle (el procesador de pago) | Procesar la suscripción |
 
 - **¿Los datos se cifran en tránsito?** Sí (HTTPS/TLS en todas las conexiones)
 - **¿El usuario puede pedir que se borren sus datos?** Sí (borrar video individual desde la app, o borrar cuenta completa por correo — ya está en la política de privacidad)

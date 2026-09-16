@@ -27,7 +27,7 @@ export function createApp() {
     })
   );
 
-  // IMPORTANTE: el webhook de Stripe necesita el body RAW para verificar la
+  // IMPORTANTE: el webhook de Paddle necesita el body RAW para verificar la
   // firma. Se registra ANTES de express.json() global; si fuera después, el
   // body ya vendría parseado como objeto y la verificación de firma fallaría.
   app.post(

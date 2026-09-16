@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { initializePaddle } from "@paddle/paddle-js";
 import { useAuth } from "../../context/AuthContext";
-import { apiGet, apiPost } from "../../lib/api";
+import { apiGet } from "../../lib/api";
 
 interface PlanInfo {
   name: string;
   label: string;
   priceUsdMonthly: number;
+  paddlePriceId: string | null;
   maxVideosPerMonth: number;
   maxGroups: number;
   maxAthletesPerGroup: number;
@@ -29,7 +31,17 @@ export default function SubscriptionPage() {
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<PlanInfo[]>([]);
   const [mine, setMine] = useState<MyStatus | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  // Paddle Billing no ofrece una página de pago alojada a la que redirigir
+  // (a diferencia de Stripe Checkout) — el checkout se abre como overlay en
+  // el navegador con Paddle.js, así que este ref guarda la instancia ya
+  // inicializada para abrirlo al hacer clic en "Suscribirse".
+  const paddleRef = useRef<Awaited<ReturnType<typeof initializePaddle>> | null>(null);
+  const [paddleReady, setPaddleReady] = useState(false);
+  // La app móvil no puede abrir Paddle.js directamente (no tiene SDK nativo),
+  // así que su botón "Suscribirse" abre esta página en el navegador del
+  // teléfono con ?plan=X — una vez el usuario inicia sesión aquí, se abre el
+  // checkout automáticamente en vez de obligarlo a tocar "Suscribirse" de nuevo.
+  const autoOpenedRef = useRef(false);
 
   useEffect(() => {
     apiGet<PlanInfo[]>("/api/v1/subscriptions/plans").then(setPlans).catch(console.error);
@@ -40,22 +52,52 @@ export default function SubscriptionPage() {
     apiGet<MyStatus>("/api/v1/subscriptions/me").then(setMine).catch(console.error);
   }, [user, authLoading]);
 
-  const status = searchParams.get("status");
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+    if (!token) return;
+    initializePaddle({
+      token,
+      environment: process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "production" : "sandbox",
+    }).then((paddle) => {
+      paddleRef.current = paddle ?? null;
+      setPaddleReady(!!paddle);
+    });
+  }, []);
 
-  async function subscribe(planName: string) {
+  const status = searchParams.get("status");
+  const requestedPlan = searchParams.get("plan");
+
+  useEffect(() => {
+    if (autoOpenedRef.current) return;
+    if (!requestedPlan || !user || !paddleReady || plans.length === 0) return;
+    const plan = plans.find((p) => p.name === requestedPlan);
+    if (!plan || plan.name === "FREE") return;
+    autoOpenedRef.current = true;
+    subscribe(plan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedPlan, user, paddleReady, plans]);
+
+  function subscribe(plan: PlanInfo) {
     if (!user) {
       router.push("/login");
       return;
     }
-    setBusy(planName);
-    try {
-      const result = await apiPost<{ url: string }>("/api/v1/subscriptions/checkout", { plan: planName });
-      window.location.href = result.url;
-    } catch (err) {
-      alert("No se pudo iniciar el pago. Verifica que Stripe esté configurado en el servidor.");
-    } finally {
-      setBusy(null);
+    if (!plan.paddlePriceId) {
+      alert("Ese plan no está disponible para pago (falta configurar el Price ID de Paddle).");
+      return;
     }
+    if (!paddleRef.current) {
+      alert("No se pudo iniciar el pago. Verifica que Paddle esté configurado en el sitio.");
+      return;
+    }
+    paddleRef.current.Checkout.open({
+      items: [{ priceId: plan.paddlePriceId, quantity: 1 }],
+      customer: user.email ? { email: user.email } : undefined,
+      customData: { userId: user.uid },
+      settings: {
+        successUrl: `${window.location.origin}/subscription?status=success`,
+      },
+    });
   }
 
   return (
@@ -99,12 +141,8 @@ export default function SubscriptionPage() {
               <li>{p.allowReports ? "Reportes PDF/Excel ✓" : "Sin reportes"}</li>
             </ul>
             {p.name !== "FREE" && mine?.plan !== p.name && (
-              <button
-                className="btn-primary"
-                onClick={() => subscribe(p.name)}
-                disabled={busy === p.name}
-              >
-                {busy === p.name ? "Redirigiendo…" : "Suscribirse"}
+              <button className="btn-primary" onClick={() => subscribe(p)}>
+                Suscribirse
               </button>
             )}
             {mine?.plan === p.name && (

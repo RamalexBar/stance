@@ -8,16 +8,16 @@ export const subscriptionsRepository = {
     return prisma.subscription.findUnique({ where: { userId } });
   },
 
-  findByStripeCustomerId(stripeCustomerId: string) {
-    return prisma.subscription.findUnique({ where: { stripeCustomerId } });
+  findByPaddleCustomerId(paddleCustomerId: string) {
+    return prisma.subscription.findUnique({ where: { paddleCustomerId } });
   },
 
   upsert(params: {
     userId: string;
     plan: PlanType;
     status: SubscriptionStatus;
-    stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
+    paddleCustomerId?: string;
+    paddleSubscriptionId?: string;
     currentPeriodEnd?: Date;
   }) {
     return prisma.subscription.upsert({
@@ -25,16 +25,16 @@ export const subscriptionsRepository = {
       update: {
         plan: params.plan,
         status: params.status,
-        stripeCustomerId: params.stripeCustomerId,
-        stripeSubscriptionId: params.stripeSubscriptionId,
+        paddleCustomerId: params.paddleCustomerId,
+        paddleSubscriptionId: params.paddleSubscriptionId,
         currentPeriodEnd: params.currentPeriodEnd,
       },
       create: {
         userId: params.userId,
         plan: params.plan,
         status: params.status,
-        stripeCustomerId: params.stripeCustomerId,
-        stripeSubscriptionId: params.stripeSubscriptionId,
+        paddleCustomerId: params.paddleCustomerId,
+        paddleSubscriptionId: params.paddleSubscriptionId,
         currentPeriodEnd: params.currentPeriodEnd,
       },
     });

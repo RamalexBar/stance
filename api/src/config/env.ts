@@ -36,9 +36,10 @@ export const env = {
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM ?? "Easy Kite <no-reply@easykite.app>",
   },
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY,
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  paddle: {
+    apiKey: process.env.PADDLE_API_KEY,
+    webhookSecret: process.env.PADDLE_WEBHOOK_SECRET,
+    environment: process.env.PADDLE_ENVIRONMENT === "production" ? "production" : "sandbox",
   },
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:3000",
 };
