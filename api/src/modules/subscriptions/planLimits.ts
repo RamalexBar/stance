@@ -16,7 +16,7 @@ export const PLAN_CONFIG = {
   },
   PREMIUM: {
     label: "Premium",
-    priceUsdMonthly: 9.99,
+    priceUsdMonthly: 12.99,
     paddlePriceId: process.env.PADDLE_PRICE_PREMIUM ?? null,
     maxVideosPerMonth: Infinity,
     maxGroups: 0,
