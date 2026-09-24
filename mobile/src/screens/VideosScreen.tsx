@@ -144,11 +144,10 @@ export default function VideosScreen({ navigation }: RootStackScreenProps<"Video
   }
 
   async function handleImportFromGallery() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setStatusMsg("Necesitamos permiso para acceder a tu galería.");
-      return;
-    }
+    // No se pide permiso de galería a propósito: launchImageLibraryAsync abre
+    // el selector de fotos del sistema (Android Photo Picker / PHPicker en
+    // iOS), que no necesita permiso de runtime porque el usuario elige el
+    // video puntualmente y la app nunca ve el resto de la galería.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       quality: 1,
