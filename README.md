@@ -1,4 +1,43 @@
-# Easy Kite
+# Easy Kite — Entrenador con IA para kitesurf y wing foil
+
+**Subes un video de tu sesión y la app analiza tu postura y tu biomecánica.** Detecta errores técnicos y compara tu progreso. Además, un entrenador con inteligencia artificial te arma un plan de mejora.
+
+🔗 **Demo en línea:** [stance-zeta.vercel.app](https://stance-zeta.vercel.app) · 👤 Autor: [Ramiro Alexander Barrios Torres](https://github.com/RamalexBar)
+
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)
+![React Native](https://img.shields.io/badge/React_Native-Expo-000020?logo=expo&logoColor=white)
+![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white)
+![MediaPipe](https://img.shields.io/badge/MediaPipe-0097A7?logo=google&logoColor=white)
+![Claude AI](https://img.shields.io/badge/Claude_AI-D97757?logo=anthropic&logoColor=white)
+
+<!-- Sugerencia: agrega aquí una captura del análisis de pose o un GIF del flujo -->
+
+## Qué hace
+
+| Área | Funciones |
+|---|---|
+| Video | Subida directa a Supabase Storage con URLs firmadas |
+| Visión por computador | Detección de pose con MediaPipe, ángulos y métricas biomecánicas, y segmentación de maniobras |
+| Análisis | Detección automática de errores técnicos y comparación con sesiones anteriores o con un video de referencia |
+| Entrenador IA | Plan de mejora personalizado, generado con la API de Claude (Anthropic) |
+| Reportes | PDF y Excel, con envío por correo |
+| Escuelas | Grupos, entrenadores y ranking de alumnos |
+| Pagos | Suscripciones con Paddle (checkout y webhooks) |
+
+## Retos técnicos resueltos
+
+- **Visión por computador en el cliente:** la detección de pose corre en el navegador o en el WebView, sin servidores con GPU.
+- **Autenticación delegada:** Firebase Auth emite el token y el backend lo verifica con `firebase-admin`. El backend no guarda contraseñas.
+- **Backend por capas:** sigue el patrón Controller → Service → Repository, con DTOs validados por Zod.
+- **Tres clientes, un backend:** la API es Express; la web, Next.js (App Router); y la app móvil, Expo con builds EAS.
+
+---
+
+## Documentación técnica
+
 
 App de coaching para deportistas de kitesurf y wing foil: sube un video de tu
 sesión, se analiza pose/biomecánica/movimiento, se detectan errores técnicos,
@@ -28,7 +67,7 @@ stance/
 
 ---
 
-## 1. Arquitectura y por qué
+### 1. Arquitectura y por qué
 
 ```
 Cliente (web/mobile)
@@ -57,7 +96,7 @@ Patrón usado en el backend: **Controller → Service → Repository**, con DTOs
 validados por Zod antes de llegar al Service. Esto permite cambiar de
 PostgreSQL/Prisma sin tocar los controllers.
 
-## 2. Estructura de carpetas
+### 2. Estructura de carpetas
 
 ```
 stance/
@@ -99,7 +138,7 @@ stance/
     └── src/{screens, api, context, firebase, navigation, supabase, theme}
 ```
 
-## 3. Requisitos previos
+### 3. Requisitos previos
 
 - **Node.js 20+** y npm.
 - **Docker** (para levantar PostgreSQL local) — o un PostgreSQL propio.
@@ -110,7 +149,7 @@ stance/
   - [Paddle](https://vendors.paddle.com) — suscripciones (opcional; sin esto los endpoints de pago responden 503).
 - Para mobile: [Expo Go](https://expo.dev/go) en tu teléfono (desarrollo) o la app [EAS CLI](https://docs.expo.dev/eas/) (`npm i -g eas-cli`) para builds de producción.
 
-## 4. Backend (`api/`) — cómo levantarlo
+### 4. Backend (`api/`) — cómo levantarlo
 
 ```bash
 cd api
@@ -153,7 +192,7 @@ el token público del cliente (`NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` en `web/.env.lo
 El backend solo se entera del resultado vía webhook, no hay endpoint de
 `/checkout`.
 
-## 5. Web (`web/`) — cómo levantarlo
+### 5. Web (`web/`) — cómo levantarlo
 
 ```bash
 cd web
@@ -173,7 +212,7 @@ clave *anónima* de Supabase, no la service role):
 En build de producción (`npm run build`), si falta `NEXT_PUBLIC_API_URL` el
 build falla explícitamente en vez de apuntar silenciosamente a `localhost`.
 
-## 6. Mobile (`mobile/`) — cómo levantarlo
+### 6. Mobile (`mobile/`) — cómo levantarlo
 
 ```bash
 cd mobile
@@ -200,7 +239,7 @@ npx eas env:create --scope project --name EXPO_PUBLIC_FIREBASE_API_KEY --environ
 npx eas build --profile preview --platform android   # build de prueba
 ```
 
-## 7. Cómo probar el flujo completo
+### 7. Cómo probar el flujo completo
 
 1. Abre `http://localhost:3000/register`, crea una cuenta con un email real.
 2. Deberías caer en `/profile`. Completa peso, altura, nivel y disciplinas.
@@ -221,7 +260,7 @@ npx eas build --profile preview --platform android   # build de prueba
    manualmente en la base de datos, una única vez, para tener el primer
    Admin).
 
-## 8. Riesgos y deuda técnica conocida
+### 8. Riesgos y deuda técnica conocida
 
 - **Login social en mobile (Google/Apple/Facebook):** requiere
   `expo-auth-session` y/o `expo-apple-authentication` con configuración
